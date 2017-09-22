@@ -1,7 +1,6 @@
 package nz.ac.auckland.concert.client.service;
 
-import java.awt.Image;
-import java.util.Set;
+import nz.ac.auckland.concert.common.dto.*;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -9,33 +8,29 @@ import javax.ws.rs.client.Invocation.Builder;
 import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.awt.*;
+import java.util.Set;
 
-import nz.ac.auckland.concert.common.dto.BookingDTO;
-import nz.ac.auckland.concert.common.dto.ConcertDTO;
-import nz.ac.auckland.concert.common.dto.CreditCardDTO;
-import nz.ac.auckland.concert.common.dto.PerformerDTO;
-import nz.ac.auckland.concert.common.dto.ReservationDTO;
-import nz.ac.auckland.concert.common.dto.ReservationRequestDTO;
-import nz.ac.auckland.concert.common.dto.UserDTO;
+import static nz.ac.auckland.concert.common.config.URIConfig.CONCERTS_URI;
+import static nz.ac.auckland.concert.common.config.URIConfig.PERFORMERS_URI;
+import static nz.ac.auckland.concert.common.config.URIConfig.WEB_SERVICE_URI;
 
 public class DefaultService implements ConcertService {
 
     private Client client;
     private Response response;
-    private static final String WEB_SERVICE_URI = "http://localhost:10000/services";
-    private static final String CONCERTS_URI = "/concerts";
 
     /**
      * Creates a new client connection
      */
-    private void createClientConnection(){
+    private void createClientConnection() {
         client = ClientBuilder.newClient();
     }
 
     /**
      * Closes the response and client connections
      */
-    private void closeReponseAndClient(){
+    private void closeReponseAndClient() {
         response.close();
         client.close();
     }
@@ -48,7 +43,7 @@ public class DefaultService implements ConcertService {
         response = builder.get();
 
         Set<ConcertDTO> concerts = response
-                .readEntity(new GenericType<Set<ConcertDTO>>(){
+                .readEntity(new GenericType<Set<ConcertDTO>>() {
                 });
 
         closeReponseAndClient();
@@ -57,8 +52,17 @@ public class DefaultService implements ConcertService {
 
     @Override
     public Set<PerformerDTO> getPerformers() throws ServiceException {
-        // TODO Auto-generated method stub
-        return null;
+        createClientConnection();
+
+        Builder builder = client.target(WEB_SERVICE_URI + PERFORMERS_URI).request().accept(MediaType.APPLICATION_XML);
+        response = builder.get();
+
+        Set<PerformerDTO> performers = response
+                .readEntity(new GenericType<Set<PerformerDTO>>() {
+                });
+
+        closeReponseAndClient();
+        return performers;
     }
 
     @Override

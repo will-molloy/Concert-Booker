@@ -7,16 +7,9 @@ import nz.ac.auckland.concert.service.domain.Performer;
 import java.util.stream.Collectors;
 
 
-public class ConcertMapper {
-
-    static Concert toDomainModel(ConcertDTO concertDTO) {
-        return new Concert(
-                concertDTO.getTitle()
-        );
-    }
+class ConcertMapper {
 
     static ConcertDTO toDto(Concert concert) {
-
         return new ConcertDTO(
                 concert.getId(),
                 concert.getTitle(),
