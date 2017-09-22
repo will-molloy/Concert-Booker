@@ -6,6 +6,8 @@ import java.util.Set;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Invocation.Builder;
+import javax.ws.rs.core.GenericType;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import nz.ac.auckland.concert.common.dto.BookingDTO;
@@ -18,83 +20,98 @@ import nz.ac.auckland.concert.common.dto.UserDTO;
 
 public class DefaultService implements ConcertService {
 
-	@Override
-	public Set<ConcertDTO> getConcerts() throws ServiceException {
-		
-		// PIAZZA CODE:: PLACE IN EVERY METHOD ( create private one )
-		
-		// Create a new Client (connection).
-		Client client = ClientBuilder.newClient();
-		// Prepare a request and invoke the Web service.
-		Builder builder = null;
-		Response response = builder.get();
-		// Process the response.
-		// Close both the Response and the connection.
-		response.close();
-		client.close();
-		
-		
-		
-		return null;
-	}
+    private Client client;
+    private Response response;
+    private static final String WEB_SERVICE_URI = "http://localhost:10000/services";
+    private static final String CONCERTS_URI = "/concerts";
 
-	@Override
-	public Set<PerformerDTO> getPerformers() throws ServiceException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    /**
+     * Creates a new client connection
+     */
+    private void createClientConnection(){
+        client = ClientBuilder.newClient();
+    }
 
-	@Override
-	public UserDTO createUser(UserDTO newUser) throws ServiceException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    /**
+     * Closes the response and client connections
+     */
+    private void closeReponseAndClient(){
+        response.close();
+        client.close();
+    }
 
-	@Override
-	public UserDTO authenticateUser(UserDTO user) throws ServiceException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public Set<ConcertDTO> getConcerts() throws ServiceException {
+        createClientConnection();
 
-	@Override
-	public Image getImageForPerformer(PerformerDTO performer) throws ServiceException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+        Builder builder = client.target(WEB_SERVICE_URI + CONCERTS_URI).request().accept(MediaType.APPLICATION_XML);
+        response = builder.get();
 
-	@Override
-	public ReservationDTO reserveSeats(ReservationRequestDTO reservationRequest) throws ServiceException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+        Set<ConcertDTO> concerts = response
+                .readEntity(new GenericType<Set<ConcertDTO>>(){
+                });
 
-	@Override
-	public void confirmReservation(ReservationDTO reservation) throws ServiceException {
-		// TODO Auto-generated method stub
-		
-	}
+        closeReponseAndClient();
+        return concerts;
+    }
 
-	@Override
-	public void registerCreditCard(CreditCardDTO creditCard) throws ServiceException {
-		// TODO Auto-generated method stub
-		
-	}
+    @Override
+    public Set<PerformerDTO> getPerformers() throws ServiceException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	@Override
-	public Set<BookingDTO> getBookings() throws ServiceException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public UserDTO createUser(UserDTO newUser) throws ServiceException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	@Override
-	public void subscribeForNewsItems(NewsItemListener listener) {
-		throw new UnsupportedOperationException();
-		
-	}
+    @Override
+    public UserDTO authenticateUser(UserDTO user) throws ServiceException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	@Override
-	public void cancelSubscription() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public Image getImageForPerformer(PerformerDTO performer) throws ServiceException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public ReservationDTO reserveSeats(ReservationRequestDTO reservationRequest) throws ServiceException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public void confirmReservation(ReservationDTO reservation) throws ServiceException {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void registerCreditCard(CreditCardDTO creditCard) throws ServiceException {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public Set<BookingDTO> getBookings() throws ServiceException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public void subscribeForNewsItems(NewsItemListener listener) {
+        throw new UnsupportedOperationException();
+
+    }
+
+    @Override
+    public void cancelSubscription() {
+        throw new UnsupportedOperationException();
+    }
 
 }
