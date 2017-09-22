@@ -10,4 +10,6 @@ public class URIConfig {
     public static final String CONCERTS_URI = "/concerts";
 
     public static final String PERFORMERS_URI = "/performers";
+
+    public static final String USERS_URI = "/users";
 }

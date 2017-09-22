@@ -15,7 +15,7 @@ public class Performer {
 
     @Id
     @GeneratedValue
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private long id;
 
     @Enumerated(EnumType.STRING)

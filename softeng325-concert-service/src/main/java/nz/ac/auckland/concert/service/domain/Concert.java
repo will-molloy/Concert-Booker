@@ -15,7 +15,7 @@ public class Concert {
 
     @Id
     @GeneratedValue
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private long id;
 
     @Column(nullable = false)

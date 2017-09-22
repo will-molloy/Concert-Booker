@@ -22,24 +22,33 @@ public class ConcertApplication extends Application {
     // This property is used by class ConcertServiceTest.
     public static final int RESERVATION_EXPIRY_TIME_IN_SECONDS = 5;
 
-    private Set<Object> _singletons = new HashSet<Object>();
+    private Set<Object> _singletons = new HashSet<>();
     private Set<Class<?>> _classes = new HashSet<>();
 
     public ConcertApplication() {
+        initialiseDataBase(); // clear previously existing data from database
+
         _singletons.add(PersistenceManager.instance()); // executes db-init.sql ONCE
         _classes.add(ConcertResource.class); // resource per request
+    }
 
+    private void initialiseDataBase(){
         EntityManager entityManager = null;
         try {
             entityManager = PersistenceManager.instance().createEntityManager();
+            entityManager.getTransaction().begin();
 
-        } catch (Exception e) {
+            entityManager.createQuery("delete from User").executeUpdate();
+
+            entityManager.flush();
+            entityManager.clear();
+
+            entityManager.getTransaction().commit();
         } finally {
             if (entityManager != null && entityManager.isOpen()) {
                 entityManager.close();
             }
         }
-
     }
 
     @Override

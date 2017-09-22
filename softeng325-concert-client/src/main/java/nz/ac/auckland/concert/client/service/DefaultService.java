@@ -5,6 +5,7 @@ import nz.ac.auckland.concert.common.message.Messages;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.Invocation.Builder;
 import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
@@ -12,9 +13,7 @@ import javax.ws.rs.core.Response;
 import java.awt.*;
 import java.util.Set;
 
-import static nz.ac.auckland.concert.common.config.URIConfig.CONCERTS_URI;
-import static nz.ac.auckland.concert.common.config.URIConfig.PERFORMERS_URI;
-import static nz.ac.auckland.concert.common.config.URIConfig.WEB_SERVICE_URI;
+import static nz.ac.auckland.concert.common.config.URIConfig.*;
 
 public class DefaultService implements ConcertService {
 
@@ -89,8 +88,30 @@ public class DefaultService implements ConcertService {
      */
     @Override
     public UserDTO createUser(UserDTO newUser) throws ServiceException {
-        // TODO Auto-generated method stub
-        return null;
+        int status;
+        try {
+            createNewClientConnection();
+
+            Builder builder = client.target(WEB_SERVICE_URI + USERS_URI).request();
+
+            response = builder
+                    .post(Entity.entity(newUser, MediaType.APPLICATION_XML));
+
+            status = response.getStatus();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
+        } finally {
+            closeResponseAndClient();
+        }
+
+        if (status == Response.Status.CONFLICT.getStatusCode()){
+            throw new ServiceException(Messages.CREATE_USER_WITH_NON_UNIQUE_NAME);
+        } else if (status == Response.Status.BAD_REQUEST.getStatusCode()){
+            throw new ServiceException(Messages.CREATE_USER_WITH_MISSING_FIELDS);
+        }
+
+        return newUser; // "identity property is also set", username is that property...?
     }
 
     @Override
