@@ -15,8 +15,10 @@ public class Concert {
 
     @Id
     @GeneratedValue
+    @Column(nullable = false)
     private long id;
 
+    @Column(nullable = false)
     private String title;
 
     @ElementCollection
@@ -24,7 +26,7 @@ public class Concert {
             name = "CONCERT_DATES",
             joinColumns = @JoinColumn(name = "CONCERT_ID", nullable = false)
     )
-    @Column(name = "DATE")
+    @Column(nullable = false)
     private Set<LocalDateTime> dates;
 
     @ElementCollection
@@ -34,6 +36,7 @@ public class Concert {
             name = "CONCERT_TARIFS",
             joinColumns = @JoinColumn(name = "CONCERT_ID", nullable = false)
     )
+    @Column(nullable = false)
     private Map<PriceBand, BigDecimal> tariff;
 
     @ManyToMany(cascade = {

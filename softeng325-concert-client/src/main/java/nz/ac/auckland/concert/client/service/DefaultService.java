@@ -51,7 +51,6 @@ public class DefaultService implements ConcertService {
             concerts = response
                     .readEntity(new GenericType<Set<ConcertDTO>>() {
                     });
-
         } catch (Exception e){
             e.printStackTrace();
             throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
@@ -85,6 +84,9 @@ public class DefaultService implements ConcertService {
         return performers;
     }
 
+    /**
+     * @see ConcertService#createUser(UserDTO)
+     */
     @Override
     public UserDTO createUser(UserDTO newUser) throws ServiceException {
         // TODO Auto-generated method stub

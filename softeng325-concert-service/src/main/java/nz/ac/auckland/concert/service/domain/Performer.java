@@ -15,13 +15,17 @@ public class Performer {
 
     @Id
     @GeneratedValue
+    @Column(nullable = false)
     private long id;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Genre genre;
 
+    @Column(nullable = false)
     private String imageName;
 
+    @Column(nullable = false)
     private String name;
 
     @ManyToMany(mappedBy = "performers")
