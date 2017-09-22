@@ -53,6 +53,7 @@ public class DefaultService implements ConcertService {
                     });
 
         } catch (Exception e){
+            e.printStackTrace();
             throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
         } finally {
             closeResponseAndClient();
@@ -76,6 +77,7 @@ public class DefaultService implements ConcertService {
                     .readEntity(new GenericType<Set<PerformerDTO>>() {
                     });
         } catch (Exception e){
+            e.printStackTrace();
             throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
         } finally {
             closeResponseAndClient();
