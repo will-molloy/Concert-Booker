@@ -1,6 +1,10 @@
-package nz.ac.auckland.concert.common.util;
+package nz.ac.auckland.concert.service.services.util;
+
+import nz.ac.auckland.concert.common.dto.UserDTO;
+import nz.ac.auckland.concert.service.domain.User;
 
 import java.lang.reflect.Field;
+import java.util.List;
 import java.util.Objects;
 
 /**

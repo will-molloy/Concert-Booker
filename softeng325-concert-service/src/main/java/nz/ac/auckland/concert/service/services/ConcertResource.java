@@ -3,7 +3,7 @@ package nz.ac.auckland.concert.service.services;
 import nz.ac.auckland.concert.common.dto.ConcertDTO;
 import nz.ac.auckland.concert.common.dto.PerformerDTO;
 import nz.ac.auckland.concert.common.dto.UserDTO;
-import nz.ac.auckland.concert.common.util.DataVerifier;
+import nz.ac.auckland.concert.service.services.util.DataVerifier;
 import nz.ac.auckland.concert.service.domain.Concert;
 import nz.ac.auckland.concert.service.domain.Performer;
 import nz.ac.auckland.concert.service.domain.User;
@@ -19,7 +19,6 @@ import javax.ws.rs.core.Cookie;
 import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
-import java.lang.reflect.Field;
 import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -113,11 +112,8 @@ public class ConcertResource {
             throw new WebApplicationException(Response.Status.BAD_REQUEST); // 400 Bad Request status
         }
 
-        // Check if username already persists
-        beginTransaction();
-        List<User> users = entityManager.createQuery("SELECT u FROM User u", User.class).getResultList();
-        commitTransaction();
-        if (users.stream().anyMatch(user -> user.getUsername().equals(userDTO.getUsername()))){
+        // Check if the user already persists
+        if (userExists(userDTO)){
             throw new WebApplicationException(Response.Status.CONFLICT); // 409 Conflict status
         }
 
@@ -131,6 +127,13 @@ public class ConcertResource {
         return Response.created(URI.create(USERS_URI + "/" + userDTO.getUsername())) // 201 Created status
                 .cookie(makeCookie(cookie))
                 .build();
+    }
+
+    private boolean userExists(UserDTO userDTO){
+        beginTransaction();
+        List<User> users = entityManager.createQuery("SELECT u FROM User u", User.class).getResultList();
+        commitTransaction();
+        return users.stream().anyMatch(user -> user.getUsername().equals(userDTO.getUsername()));
     }
 
     /**

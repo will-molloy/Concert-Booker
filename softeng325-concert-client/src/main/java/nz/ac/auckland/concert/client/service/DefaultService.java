@@ -111,9 +111,12 @@ public class DefaultService implements ConcertService {
             throw new ServiceException(Messages.CREATE_USER_WITH_MISSING_FIELDS);
         }
 
-        return newUser; // "identity property is also set", username is that property...?
+        return newUser; // "identity property is also set", username is that property...? TODO I guess that means the cookie / Authentication token!!
     }
 
+    /**
+     * @see ConcertService#authenticateUser(UserDTO)
+     */
     @Override
     public UserDTO authenticateUser(UserDTO user) throws ServiceException {
         // TODO Auto-generated method stub
