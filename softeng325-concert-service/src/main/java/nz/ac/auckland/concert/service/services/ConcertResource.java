@@ -4,6 +4,8 @@ import nz.ac.auckland.concert.common.dto.ConcertDTO;
 import nz.ac.auckland.concert.common.dto.PerformerDTO;
 import nz.ac.auckland.concert.service.domain.Concert;
 import nz.ac.auckland.concert.service.domain.Performer;
+import nz.ac.auckland.concert.service.services.mappers.ConcertMapper;
+import nz.ac.auckland.concert.service.services.mappers.PerformerMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,4 +1,4 @@
-package nz.ac.auckland.concert.service.services;
+package nz.ac.auckland.concert.service.services.mappers;
 
 import nz.ac.auckland.concert.common.dto.ConcertDTO;
 import nz.ac.auckland.concert.service.domain.Concert;
@@ -7,9 +7,9 @@ import nz.ac.auckland.concert.service.domain.Performer;
 import java.util.stream.Collectors;
 
 
-class ConcertMapper {
+public class ConcertMapper {
 
-    static ConcertDTO toDto(Concert concert) {
+    public static ConcertDTO toDto(Concert concert) {
         return new ConcertDTO(
                 concert.getId(),
                 concert.getTitle(),

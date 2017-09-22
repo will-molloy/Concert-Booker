@@ -1,6 +1,7 @@
 package nz.ac.auckland.concert.client.service;
 
 import nz.ac.auckland.concert.common.dto.*;
+import nz.ac.auckland.concert.common.message.Messages;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -23,45 +24,62 @@ public class DefaultService implements ConcertService {
     /**
      * Creates a new client connection
      */
-    private void createClientConnection() {
+    private void createNewClientConnection() {
         client = ClientBuilder.newClient();
     }
 
     /**
      * Closes the response and client connections
      */
-    private void closeReponseAndClient() {
+    private void closeResponseAndClient() {
         response.close();
         client.close();
     }
 
+    /**
+     * @see ConcertService#getConcerts()
+     */
     @Override
     public Set<ConcertDTO> getConcerts() throws ServiceException {
-        createClientConnection();
+        Set<ConcertDTO> concerts;
+        try {
+            createNewClientConnection();
 
-        Builder builder = client.target(WEB_SERVICE_URI + CONCERTS_URI).request().accept(MediaType.APPLICATION_XML);
-        response = builder.get();
+            Builder builder = client.target(WEB_SERVICE_URI + CONCERTS_URI).request().accept(MediaType.APPLICATION_XML);
+            response = builder.get();
 
-        Set<ConcertDTO> concerts = response
-                .readEntity(new GenericType<Set<ConcertDTO>>() {
-                });
+            concerts = response
+                    .readEntity(new GenericType<Set<ConcertDTO>>() {
+                    });
 
-        closeReponseAndClient();
+        } catch (Exception e){
+            throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
+        } finally {
+            closeResponseAndClient();
+        }
         return concerts;
     }
 
+    /**
+     * @see ConcertService#getPerformers()
+     */
     @Override
     public Set<PerformerDTO> getPerformers() throws ServiceException {
-        createClientConnection();
+        Set<PerformerDTO> performers;
+        try {
+            createNewClientConnection();
 
-        Builder builder = client.target(WEB_SERVICE_URI + PERFORMERS_URI).request().accept(MediaType.APPLICATION_XML);
-        response = builder.get();
+            Builder builder = client.target(WEB_SERVICE_URI + PERFORMERS_URI).request().accept(MediaType.APPLICATION_XML);
+            response = builder.get();
 
-        Set<PerformerDTO> performers = response
-                .readEntity(new GenericType<Set<PerformerDTO>>() {
-                });
-
-        closeReponseAndClient();
+            performers = response
+                    .readEntity(new GenericType<Set<PerformerDTO>>() {
+                    });
+        } catch (Exception e){
+            throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
+        } finally {
+            closeResponseAndClient();
+        }
         return performers;
     }
 
