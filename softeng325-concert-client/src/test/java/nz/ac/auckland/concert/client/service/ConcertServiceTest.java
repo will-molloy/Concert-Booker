@@ -2,6 +2,7 @@ package nz.ac.auckland.concert.client.service;
 
 import nz.ac.auckland.concert.common.dto.*;
 import nz.ac.auckland.concert.common.message.Messages;
+import nz.ac.auckland.concert.common.types.Genre;
 import nz.ac.auckland.concert.common.types.PriceBand;
 import nz.ac.auckland.concert.common.types.SeatRow;
 import nz.ac.auckland.concert.common.util.TheatreLayout;
@@ -19,6 +20,7 @@ import javax.ws.rs.client.ClientBuilder;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Set;
 
 import static org.junit.Assert.*;
@@ -192,7 +194,7 @@ public class ConcertServiceTest {
     }
 
     /**
-     * The AWS server cannot be accessed according to canvas announcement.
+     * The AWS server cannot be accessed according to the canvas announcement.
      * <p>
      * Therefore, the getImageForPerformer method should throw a SERVICE_COMMUNICATING_ERROR.
      */
@@ -204,6 +206,17 @@ public class ConcertServiceTest {
             fail();
         } catch (ServiceException e) {
             assertEquals(Messages.SERVICE_COMMUNICATION_ERROR, e.getMessage());
+        }
+    }
+
+    @Test
+    public void testGetImageForPerformerImageDoesntExist(){
+        try {
+            PerformerDTO unPersistedPerformer = new PerformerDTO(1L, null, null, null, new HashSet<>());
+            Image image = _service.getImageForPerformer(unPersistedPerformer);
+            fail();
+        } catch (ServiceException e) {
+            assertEquals(Messages.NO_IMAGE_FOR_PERFORMER, e.getMessage());
         }
     }
 

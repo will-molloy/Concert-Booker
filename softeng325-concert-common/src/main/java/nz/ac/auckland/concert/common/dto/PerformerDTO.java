@@ -47,7 +47,7 @@ public class PerformerDTO {
         _name = name;
         _imageName = imageName;
         _genre = genre;
-        _concertIds = new HashSet<Long>(concertIds);
+        _concertIds = new HashSet<>(concertIds);
     }
 
     public Long getId() {

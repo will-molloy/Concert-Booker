@@ -18,8 +18,10 @@ import javax.ws.rs.client.Invocation.Builder;
 import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.xml.ws.WebServiceException;
 import java.awt.*;
 import java.io.File;
+import java.util.Objects;
 import java.util.Set;
 
 import static nz.ac.auckland.concert.common.config.URIConfig.*;
@@ -169,6 +171,11 @@ public class DefaultService implements ConcertService {
 
     @Override
     public Image getImageForPerformer(PerformerDTO performer) throws ServiceException {
+        // Check the performer persists i.e. an image can be retrieved
+        if (!getPerformers().contains(performer)){
+            throw new ServiceException(Messages.NO_IMAGE_FOR_PERFORMER);
+        }
+
         String imageName = performer.getImageName();
         File imageFile = new File(imageName);
 
@@ -200,10 +207,11 @@ public class DefaultService implements ConcertService {
         } catch (Exception e) {
             throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
         } finally {
-            mgr.shutdownNow();
+            if (mgr != null){
+                mgr.shutdownNow();
+            }
         }
-
-        return Toolkit.getDefaultToolkit().getImage(imageName);
+        return Toolkit.getDefaultToolkit().getImage(String.valueOf(imageFile));
     }
 
     @Override
