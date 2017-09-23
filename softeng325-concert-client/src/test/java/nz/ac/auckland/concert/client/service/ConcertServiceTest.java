@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
+import java.awt.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -187,6 +188,22 @@ public class ConcertServiceTest {
             fail();
         } catch (ServiceException e) {
             assertEquals(Messages.AUTHENTICATE_USER_WITH_MISSING_FIELDS, e.getMessage());
+        }
+    }
+
+    /**
+     * The AWS server cannot be accessed according to canvas announcement.
+     * <p>
+     * Therefore, the getImageForPerformer method should throw a SERVICE_COMMUNICATING_ERROR.
+     */
+    @Test
+    public void testGetImageForPerformerAccessDenied() {
+        try {
+            Set<PerformerDTO> performers = _service.getPerformers();
+            Image image = _service.getImageForPerformer(performers.iterator().next());
+            fail();
+        } catch (ServiceException e) {
+            assertEquals(Messages.SERVICE_COMMUNICATION_ERROR, e.getMessage());
         }
     }
 

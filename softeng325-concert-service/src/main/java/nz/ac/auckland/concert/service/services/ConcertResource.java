@@ -21,7 +21,6 @@ import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static nz.ac.auckland.concert.common.config.CookieConfig.CLIENT_COOKIE;
@@ -47,8 +46,6 @@ public class ConcertResource {
             .getLogger(ConcertResource.class);
 
     private EntityManager entityManager = PersistenceManager.instance().createEntityManager();
-
-    private Map<String, User> userCache = new ConcurrentHashMap<>();
 
     /**
      * Begins EntityManager transaction
@@ -123,7 +120,6 @@ public class ConcertResource {
         beginTransaction();
         entityManager.persist(user);
         commitTransaction();
-        userCache.put(user.getUsername(), user);
 
         logger.info("Persisted new user: " + user.getUsername());
 

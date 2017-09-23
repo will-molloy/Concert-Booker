@@ -1,5 +1,13 @@
 package nz.ac.auckland.concert.client.service;
 
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.transfer.Download;
+import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import nz.ac.auckland.concert.common.dto.*;
 import nz.ac.auckland.concert.common.message.Messages;
 
@@ -11,11 +19,18 @@ import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.awt.*;
+import java.io.File;
 import java.util.Set;
 
 import static nz.ac.auckland.concert.common.config.URIConfig.*;
 
 public class DefaultService implements ConcertService {
+
+    // AWS S3 access credentials for concert images.
+    private static final String AWS_ACCESS_KEY_ID = "AKIAIDYKYWWUZ65WGNJA";
+    private static final String AWS_SECRET_ACCESS_KEY = "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";
+    // Name of the S3 bucket that stores images.
+    private static final String AWS_BUCKET = "concert.aucklanduni.ac.nz";
 
     private Client client;
     private Response response;
@@ -48,7 +63,8 @@ public class DefaultService implements ConcertService {
             response = builder.get();
 
             concerts = response
-                    .readEntity(new GenericType<Set<ConcertDTO>>(){});
+                    .readEntity(new GenericType<Set<ConcertDTO>>() {
+                    });
         } catch (Exception e) {
             e.printStackTrace();
             throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
@@ -71,7 +87,8 @@ public class DefaultService implements ConcertService {
             response = builder.get();
 
             performers = response
-                    .readEntity(new GenericType<Set<PerformerDTO>>(){});
+                    .readEntity(new GenericType<Set<PerformerDTO>>() {
+                    });
         } catch (Exception e) {
             e.printStackTrace();
             throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
@@ -152,8 +169,41 @@ public class DefaultService implements ConcertService {
 
     @Override
     public Image getImageForPerformer(PerformerDTO performer) throws ServiceException {
-        // TODO Auto-generated method stub
-        return null;
+        String imageName = performer.getImageName();
+        File imageFile = new File(imageName);
+
+        TransferManager mgr = null;
+        try {
+            // Create an AmazonS3 object that represents a connection with the
+            // remote S3 service.
+            BasicAWSCredentials awsCredentials = new BasicAWSCredentials(
+                    AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY);
+
+            // Setup the client
+            AmazonS3 s3 = AmazonS3ClientBuilder
+                    .standard()
+                    .withRegion(Regions.AP_SOUTHEAST_2)
+                    .withCredentials(
+                            new AWSStaticCredentialsProvider(awsCredentials))
+                    .build();
+
+            // Setup the transfer
+            mgr = TransferManagerBuilder
+                    .standard()
+                    .withS3Client(s3)
+                    .build();
+
+            // Download the image
+            Download download = mgr.download(AWS_BUCKET, imageName, imageFile);
+            download.waitForCompletion();
+
+        } catch (Exception e) {
+            throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
+        } finally {
+            mgr.shutdownNow();
+        }
+
+        return Toolkit.getDefaultToolkit().getImage(imageName);
     }
 
     @Override
@@ -183,7 +233,6 @@ public class DefaultService implements ConcertService {
     @Override
     public void subscribeForNewsItems(NewsItemListener listener) {
         throw new UnsupportedOperationException();
-
     }
 
     @Override
