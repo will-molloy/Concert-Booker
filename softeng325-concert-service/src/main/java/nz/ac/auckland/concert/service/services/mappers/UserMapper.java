@@ -8,17 +8,17 @@ public class UserMapper {
         return new User(
                 userDTO.getUsername(),
                 userDTO.getPassword(),
-                userDTO.getFirstname(),
-                userDTO.getLastname()
+                userDTO.getLastname(),
+                userDTO.getFirstname()
         );
     }
 
-    public static UserDTO toDTO(User user){
+    public static UserDTO toDTO(User user) {
         return new UserDTO(
                 user.getUsername(),
                 user.getPassword(),
-                user.getFirstname(),
-                user.getLastname()
+                user.getLastname(),
+                user.getFirstname()
         );
     }
 }

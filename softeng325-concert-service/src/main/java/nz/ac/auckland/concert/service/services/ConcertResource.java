@@ -3,13 +3,13 @@ package nz.ac.auckland.concert.service.services;
 import nz.ac.auckland.concert.common.dto.ConcertDTO;
 import nz.ac.auckland.concert.common.dto.PerformerDTO;
 import nz.ac.auckland.concert.common.dto.UserDTO;
-import nz.ac.auckland.concert.service.services.util.DataVerifier;
 import nz.ac.auckland.concert.service.domain.Concert;
 import nz.ac.auckland.concert.service.domain.Performer;
 import nz.ac.auckland.concert.service.domain.User;
 import nz.ac.auckland.concert.service.services.mappers.ConcertMapper;
 import nz.ac.auckland.concert.service.services.mappers.PerformerMapper;
 import nz.ac.auckland.concert.service.services.mappers.UserMapper;
+import nz.ac.auckland.concert.service.services.util.DataVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,12 +21,11 @@ import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static nz.ac.auckland.concert.common.config.CookieConfig.CLIENT_COOKIE;
-import static nz.ac.auckland.concert.common.config.URIConfig.CONCERTS_URI;
-import static nz.ac.auckland.concert.common.config.URIConfig.PERFORMERS_URI;
-import static nz.ac.auckland.concert.common.config.URIConfig.USERS_URI;
+import static nz.ac.auckland.concert.common.config.URIConfig.*;
 
 /**
  * JAX-RS Resource class for the Concert Web service.
@@ -48,6 +47,8 @@ public class ConcertResource {
             .getLogger(ConcertResource.class);
 
     private EntityManager entityManager = PersistenceManager.instance().createEntityManager();
+
+    private Map<String, User> userCache = new ConcurrentHashMap<>();
 
     /**
      * Begins EntityManager transaction
@@ -104,36 +105,69 @@ public class ConcertResource {
 
     @Path(USERS_URI)
     @POST
-    public Response createUser(UserDTO userDTO, @CookieParam(CLIENT_COOKIE) Cookie cookie){
+    public Response createUser(UserDTO userDTO, @CookieParam(CLIENT_COOKIE) Cookie cookie) {
         logger.info("Attempting to persist new user: " + userDTO.getUsername());
 
         // Check all fields have been set
-        if (!DataVerifier.allFieldsAreSet(userDTO)){
+        if (!DataVerifier.allFieldsAreSet(userDTO)) {
             throw new WebApplicationException(Response.Status.BAD_REQUEST); // 400 Bad Request status
         }
-
         // Check if the user already persists
-        if (userExists(userDTO)){
+        else if (userExists(userDTO)) {
             throw new WebApplicationException(Response.Status.CONFLICT); // 409 Conflict status
         }
 
+        User user = UserMapper.toDomain(userDTO);
+
         // Persist the new user
         beginTransaction();
-        entityManager.persist(UserMapper.toDomain(userDTO));
+        entityManager.persist(user);
         commitTransaction();
+        userCache.put(user.getUsername(), user);
 
-        logger.info("Persisted new user: " + userDTO.getUsername());
+        logger.info("Persisted new user: " + user.getUsername());
 
         return Response.created(URI.create(USERS_URI + "/" + userDTO.getUsername())) // 201 Created status
                 .cookie(makeCookie(cookie))
                 .build();
     }
 
-    private boolean userExists(UserDTO userDTO){
+    private boolean userExists(UserDTO userDTO) {
         beginTransaction();
         List<User> users = entityManager.createQuery("SELECT u FROM User u", User.class).getResultList();
         commitTransaction();
         return users.stream().anyMatch(user -> user.getUsername().equals(userDTO.getUsername()));
+    }
+
+    @Path(USERS_URI + LOGIN_URI)
+    @POST
+    public Response authenticateUser(UserDTO userDTO, @CookieParam(CLIENT_COOKIE) Cookie cookie) {
+        logger.info("Attempting to authenticate user: " + userDTO.getUsername());
+
+        // Check the username and password fields were set
+        if (Objects.isNull(userDTO.getUsername()) || Objects.isNull(userDTO.getPassword())) {
+            throw new WebApplicationException(Response.Status.BAD_REQUEST); // 400
+        }
+        // Check the user exists
+        else if (!userExists(userDTO)) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND); // 404
+        }
+
+        // Retrieve the user from the database
+        beginTransaction();
+        User user = entityManager.find(User.class, userDTO.getUsername());
+        commitTransaction();
+
+        // Check the password was correct
+        if (!user.getPassword().equals(userDTO.getPassword())) {
+            throw new WebApplicationException(Response.Status.UNAUTHORIZED); // 401
+        }
+
+        logger.info("Authenticated user: " + user.getUsername());
+
+        return Response.ok(UserMapper.toDTO(user))
+                .cookie(makeCookie(cookie))
+                .build();
     }
 
     /**

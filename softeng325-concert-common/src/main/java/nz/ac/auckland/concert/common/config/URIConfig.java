@@ -12,4 +12,7 @@ public class URIConfig {
     public static final String PERFORMERS_URI = "/performers";
 
     public static final String USERS_URI = "/users";
+
+    public static final String LOGIN_URI = "/login";
+
 }

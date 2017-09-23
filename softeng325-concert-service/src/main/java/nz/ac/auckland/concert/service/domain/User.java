@@ -9,34 +9,35 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 @Entity
-@Table(name="USERS")
+@Table(name = "USERS")
 public class User {
 
     @Id
-    @Column(name="username", nullable = false, unique = true)
+    @Column(name = "username", nullable = false, unique = true)
     private String username;
 
-    @Column(name="password", nullable = false)
+    @Column(name = "password", nullable = false)
     private String password;
 
-    @Column(name="first_name", nullable = false)
+    @Column(name = "first_name", nullable = false)
     private String firstname;
 
-    @Column(name="last_name", nullable = false)
+    @Column(name = "last_name", nullable = false)
     private String lastname;
 
-    public User(String username, String password, String firstname, String lastname) {
+    public User(String username, String password, String lastname, String firstname) {
         this.username = username;
         this.password = password;
-        this.firstname = firstname;
         this.lastname = lastname;
+        this.firstname = firstname;
+    }
+
+    protected User() {
     }
 
     public String getUsername() {
         return username;
     }
-
-    protected User(){}
 
     public void setUsername(String username) {
         this.username = username;

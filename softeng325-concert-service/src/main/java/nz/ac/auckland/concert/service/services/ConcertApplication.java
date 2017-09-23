@@ -32,7 +32,7 @@ public class ConcertApplication extends Application {
         _classes.add(ConcertResource.class); // resource per request
     }
 
-    private void initialiseDataBase(){
+    private void initialiseDataBase() {
         EntityManager entityManager = null;
         try {
             entityManager = PersistenceManager.instance().createEntityManager();

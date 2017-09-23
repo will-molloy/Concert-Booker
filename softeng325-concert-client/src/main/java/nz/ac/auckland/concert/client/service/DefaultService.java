@@ -48,9 +48,8 @@ public class DefaultService implements ConcertService {
             response = builder.get();
 
             concerts = response
-                    .readEntity(new GenericType<Set<ConcertDTO>>() {
-                    });
-        } catch (Exception e){
+                    .readEntity(new GenericType<Set<ConcertDTO>>(){});
+        } catch (Exception e) {
             e.printStackTrace();
             throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
         } finally {
@@ -72,9 +71,8 @@ public class DefaultService implements ConcertService {
             response = builder.get();
 
             performers = response
-                    .readEntity(new GenericType<Set<PerformerDTO>>() {
-                    });
-        } catch (Exception e){
+                    .readEntity(new GenericType<Set<PerformerDTO>>(){});
+        } catch (Exception e) {
             e.printStackTrace();
             throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
         } finally {
@@ -105,9 +103,10 @@ public class DefaultService implements ConcertService {
             closeResponseAndClient();
         }
 
-        if (status == Response.Status.CONFLICT.getStatusCode()){
+        if (status == Response.Status.CONFLICT.getStatusCode()) {
             throw new ServiceException(Messages.CREATE_USER_WITH_NON_UNIQUE_NAME);
-        } else if (status == Response.Status.BAD_REQUEST.getStatusCode()){
+
+        } else if (status == Response.Status.BAD_REQUEST.getStatusCode()) {
             throw new ServiceException(Messages.CREATE_USER_WITH_MISSING_FIELDS);
         }
 
@@ -119,8 +118,36 @@ public class DefaultService implements ConcertService {
      */
     @Override
     public UserDTO authenticateUser(UserDTO user) throws ServiceException {
-        // TODO Auto-generated method stub
-        return null;
+        UserDTO authenticatedUser;
+        int status;
+        try {
+            createNewClientConnection();
+
+            Builder builder = client.target(WEB_SERVICE_URI + USERS_URI + LOGIN_URI).request().accept(MediaType.APPLICATION_XML);
+
+            response = builder
+                    .post(Entity.entity(user, MediaType.APPLICATION_XML));
+
+            status = response.getStatus();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
+        } finally {
+            closeResponseAndClient();
+        }
+        if (status == Response.Status.BAD_REQUEST.getStatusCode()) {
+            throw new ServiceException(Messages.AUTHENTICATE_USER_WITH_MISSING_FIELDS);
+
+        } else if (status == Response.Status.NOT_FOUND.getStatusCode()) {
+            throw new ServiceException(Messages.AUTHENTICATE_NON_EXISTENT_USER);
+
+        } else if (status == Response.Status.UNAUTHORIZED.getStatusCode()) {
+            throw new ServiceException(Messages.AUTHENTICATE_USER_WITH_ILLEGAL_PASSWORD);
+        }
+
+        authenticatedUser = response.readEntity(UserDTO.class);
+        return authenticatedUser;
     }
 
     @Override
