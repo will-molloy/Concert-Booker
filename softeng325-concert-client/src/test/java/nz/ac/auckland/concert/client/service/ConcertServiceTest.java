@@ -250,6 +250,22 @@ public class ConcertServiceTest {
     }
 
     @Test
+    public void testMakeReservationMissingFields() {
+        try {
+            UserDTO userDTO = new UserDTO("Bulldog", "123", "Churchill", "Winston");
+            _service.createUser(userDTO);
+
+            LocalDateTime dateTime = LocalDateTime.of(2018, 2, 24, 17, 00);
+            ReservationRequestDTO request = new ReservationRequestDTO(2, null, 1L, dateTime);
+
+            ReservationDTO reservation = _service.reserveSeats(request);
+            fail();
+        } catch (ServiceException e) {
+            assertEquals(Messages.RESERVATION_REQUEST_WITH_MISSING_FIELDS, e.getMessage());
+        }
+    }
+
+    @Test
     public void testMakeReservationWithBadRequest() {
         try {
             UserDTO userDTO = new UserDTO("Bulldog", "123", "Churchill", "Winston");

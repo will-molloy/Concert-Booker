@@ -39,7 +39,7 @@ public class ReservationDTO {
     public ReservationDTO(Long id, ReservationRequestDTO request, Set<SeatDTO> seats) {
         _id = id;
         _request = request;
-        _seats = new HashSet<SeatDTO>(seats);
+        _seats = new HashSet<>(seats);
     }
 
     public Long getId() {

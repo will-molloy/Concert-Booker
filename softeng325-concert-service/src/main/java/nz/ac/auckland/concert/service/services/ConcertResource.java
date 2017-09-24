@@ -2,6 +2,7 @@ package nz.ac.auckland.concert.service.services;
 
 import nz.ac.auckland.concert.common.dto.ConcertDTO;
 import nz.ac.auckland.concert.common.dto.PerformerDTO;
+import nz.ac.auckland.concert.common.dto.ReservationRequestDTO;
 import nz.ac.auckland.concert.common.dto.UserDTO;
 import nz.ac.auckland.concert.service.domain.Concert;
 import nz.ac.auckland.concert.service.domain.Performer;
@@ -74,8 +75,7 @@ public class ConcertResource {
         Set<ConcertDTO> concertDTOS = new HashSet<>();
         concertDTOS.addAll(concerts.stream().map(ConcertMapper::toDto).collect(Collectors.toSet()));
 
-        GenericEntity<Set<ConcertDTO>> entity = new GenericEntity<Set<ConcertDTO>>(concertDTOS) {
-        };
+        GenericEntity<Set<ConcertDTO>> entity = new GenericEntity<Set<ConcertDTO>>(concertDTOS) {};
         return Response.ok(entity)
                 .cookie(makeCookie(cookie))
                 .build();
@@ -164,6 +164,19 @@ public class ConcertResource {
         return Response.ok(UserMapper.toDTO(user))
                 .cookie(makeCookie(cookie))
                 .build();
+    }
+
+    @Path(USERS_URI + RESERVATION_URI) // TODO decide on URI? Post - return a newly created one.. PUT - client decides. Must change in ClientService too.
+    @POST // TODO https://stackoverflow.com/questions/6203231/which-http-methods-match-up-to-which-crud-methods
+    public Response makeReservation(ReservationRequestDTO reservationRequestDTO, @CookieParam(CLIENT_COOKIE) Cookie cookie) {
+        logger.info("Attempting to make reservation.");
+
+        // Check all parameters have been set in the reservation request
+        if (!DataVerifier.allFieldsAreSet(reservationRequestDTO)){
+            throw new WebApplicationException(Response.Status.BAD_REQUEST); // 400
+        }
+
+        return null;
     }
 
     /**
