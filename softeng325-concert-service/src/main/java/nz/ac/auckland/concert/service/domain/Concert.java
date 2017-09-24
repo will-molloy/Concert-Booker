@@ -48,6 +48,9 @@ public class Concert {
     )
     private Set<Performer> performers;
 
+    @OneToMany(mappedBy = "concert")
+    private Set<Booking> bookings;
+
     public Concert(String title) {
         this.title = title;
     }
@@ -125,5 +128,17 @@ public class Concert {
 
     public long getId() {
         return id;
+    }
+
+    public Set<Booking> getBookings() {
+        return bookings;
+    }
+
+    public void setBookings(Set<Booking> bookings) {
+        this.bookings = bookings;
+    }
+
+    public void setPerformers(Set<Performer> performers) {
+        this.performers = performers;
     }
 }

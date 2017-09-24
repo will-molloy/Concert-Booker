@@ -204,7 +204,7 @@ public interface ConcertService {
      *                          The exception's message is defined in
      *                          class nz.ac.auckland.concert.common.Messages.
      *                          <p>
-     *                          Condition: the request is made by an unauthenticated user.
+     *                          Condition: the request isn't made by an unauthenticated user.
      *                          Messages.UNAUTHENTICATED_REQUEST
      *                          <p>
      *                          Condition: the request includes an authentication token but it's not

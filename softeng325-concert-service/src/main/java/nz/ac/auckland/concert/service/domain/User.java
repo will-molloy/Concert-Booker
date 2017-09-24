@@ -3,10 +3,8 @@ package nz.ac.auckland.concert.service.domain;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
+import java.util.Set;
 
 @Entity
 @Table(name = "USERS")
@@ -27,6 +25,9 @@ public class User {
 
     @Column(name = "UUID")
     private String uuid;
+
+    @OneToMany(mappedBy = "user")
+    private Set<Booking> bookings;
 
     public User(String username, String password, String lastname, String firstname, String uuid) {
         this.username = username;
@@ -97,5 +98,13 @@ public class User {
                 append(lastname).
                 append(uuid).
                 hashCode();
+    }
+
+    public Set<Booking> getBookings() {
+        return bookings;
+    }
+
+    public void setBookings(Set<Booking> bookings) {
+        this.bookings = bookings;
     }
 }

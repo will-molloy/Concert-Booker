@@ -219,7 +219,7 @@ public class ConcertResource {
         }
 
         // Check the seats are available
-
+        Concert concert = concerts.get(0);
 
         // Create the reservation for that user
 
