@@ -2,7 +2,6 @@ package nz.ac.auckland.concert.client.service;
 
 import nz.ac.auckland.concert.common.dto.*;
 import nz.ac.auckland.concert.common.message.Messages;
-import nz.ac.auckland.concert.common.types.Genre;
 import nz.ac.auckland.concert.common.types.PriceBand;
 import nz.ac.auckland.concert.common.types.SeatRow;
 import nz.ac.auckland.concert.common.util.TheatreLayout;
@@ -210,7 +209,7 @@ public class ConcertServiceTest {
     }
 
     @Test
-    public void testGetImageForPerformerImageDoesntExist(){
+    public void testGetImageForPerformerImageDoesntExist() {
         try {
             PerformerDTO unPersistedPerformer = new PerformerDTO(1L, null, null, null, new HashSet<>());
             Image image = _service.getImageForPerformer(unPersistedPerformer);

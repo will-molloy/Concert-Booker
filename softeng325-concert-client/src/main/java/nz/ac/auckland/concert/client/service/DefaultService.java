@@ -300,14 +300,14 @@ public class DefaultService implements ConcertService {
         if (status == Response.Status.FORBIDDEN.getStatusCode()) {
             throw new ServiceException(Messages.BAD_AUTHENTICATON_TOKEN);
         }
-        if (status == Response.Status.BAD_REQUEST.getStatusCode()){
-            if (!DataVerifier.allFieldsAreSet(reservationRequest)){ // Already checked htis??
+        if (status == Response.Status.BAD_REQUEST.getStatusCode()) {
+            if (!DataVerifier.allFieldsAreSet(reservationRequest)) { // TODO Already checked this??
                 throw new ServiceException(Messages.RESERVATION_REQUEST_WITH_MISSING_FIELDS);
             } else {
                 throw new ServiceException(Messages.CONCERT_NOT_SCHEDULED_ON_RESERVATION_DATE);
             }
         }
-        if (status == Response.Status.NOT_FOUND.getStatusCode()){
+        if (status == Response.Status.NOT_FOUND.getStatusCode()) {
             throw new ServiceException(Messages.INSUFFICIENT_SEATS_AVAILABLE_FOR_RESERVATION);
         }
 

@@ -30,7 +30,7 @@ public class Concert {
     private Set<LocalDateTime> dates;
 
     @ElementCollection
-    @MapKeyColumn(name = "PRICE_BAND", nullable = false, table = "CONCERT_TARIFS")
+    @MapKeyColumn(name = "PRICE_BAND", table = "CONCERT_TARIFS")
     @MapKeyEnumerated(EnumType.STRING)
     @CollectionTable(
             name = "CONCERT_TARIFS",

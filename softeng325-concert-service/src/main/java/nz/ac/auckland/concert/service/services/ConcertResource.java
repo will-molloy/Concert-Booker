@@ -4,7 +4,6 @@ import nz.ac.auckland.concert.common.dto.ConcertDTO;
 import nz.ac.auckland.concert.common.dto.PerformerDTO;
 import nz.ac.auckland.concert.common.dto.ReservationRequestDTO;
 import nz.ac.auckland.concert.common.dto.UserDTO;
-import nz.ac.auckland.concert.common.message.Messages;
 import nz.ac.auckland.concert.service.domain.Concert;
 import nz.ac.auckland.concert.service.domain.Performer;
 import nz.ac.auckland.concert.service.domain.User;
@@ -22,6 +21,7 @@ import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import java.net.URI;
+import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -183,8 +183,8 @@ public class ConcertResource {
         }
 
         // Check request included an authentication token
-        if (Objects.isNull(clientId)){
-            throw new WebApplicationException(Response.Status.UNAUTHORIZED);
+        if (Objects.isNull(clientId)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
 
         // Check user is authenticated i.e. exists in the database
@@ -193,19 +193,35 @@ public class ConcertResource {
         List<User> users = entityManager.createQuery("SELECT u FROM User u WHERE uuid = \'" + uuid + "\'", User.class).getResultList();
         commitTransaction();
 
-        // Multiple users with same UUID
-        if (users.size() > 1){
+        if (users.size() > 1) {
+            // Multiple users with same UUID
             throw new WebApplicationException(Response.Status.CONFLICT);
         }
-        // User included UUID but wasn't found in the database
-        if (users.isEmpty()){
-            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        if (users.isEmpty()) {
+            // User included UUID but wasn't found in the database
+            throw new WebApplicationException(Response.Status.UNAUTHORIZED);
         }
 
-        // Check concert is available on that date -- badreq
+        // Check concert is available on that date
+        Timestamp date = Timestamp.valueOf(reservationRequestDTO.getDate());
+        long concertId = reservationRequestDTO.getConcertId();
+        beginTransaction();
+        List<Concert> concerts = entityManager.createQuery("SELECT c " +
+                        "FROM Concert c JOIN c.dates d " +
+                        "WHERE c.id = \'" + concertId + "\' AND " +
+                        "d = \'" + date + "\'"
+                , Concert.class).getResultList();
+        commitTransaction();
 
-        // Check the seats are available -- notfound
+        if (concerts.isEmpty()) {
+            // The requested reservation contained a date/time for when the concert is not scheduled.
+            throw new WebApplicationException(Response.Status.BAD_REQUEST);
+        }
 
+        // Check the seats are available
+
+
+        // Create the reservation for that user
 
 
         return null;

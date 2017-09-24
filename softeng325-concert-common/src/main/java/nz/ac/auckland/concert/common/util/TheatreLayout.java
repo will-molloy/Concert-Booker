@@ -17,9 +17,9 @@ public class TheatreLayout {
     private static Set<SeatRow> _rowsInPriceBandC;
 
     static {
-        _rowsInPriceBandA = new HashSet<SeatRow>();
-        _rowsInPriceBandB = new HashSet<SeatRow>();
-        _rowsInPriceBandC = new HashSet<SeatRow>();
+        _rowsInPriceBandA = new HashSet<>();
+        _rowsInPriceBandB = new HashSet<>();
+        _rowsInPriceBandC = new HashSet<>();
 
         _rowsInPriceBandA.add(SeatRow.E);
         _rowsInPriceBandA.add(SeatRow.F);
@@ -54,7 +54,7 @@ public class TheatreLayout {
      * Returns the number of seats in a specified row at the concert venue.
      */
     public static int getNumberOfSeatsForRow(SeatRow row) {
-        int seats = 0;
+        int seats;
 
         if (row == SeatRow.A) {
             seats = 19;
