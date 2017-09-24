@@ -4,12 +4,13 @@ import nz.ac.auckland.concert.common.dto.UserDTO;
 import nz.ac.auckland.concert.service.domain.User;
 
 public class UserMapper {
-    public static User toDomain(UserDTO userDTO) {
+    public static User toDomain(UserDTO userDTO, String uuid) {
         return new User(
                 userDTO.getUsername(),
                 userDTO.getPassword(),
                 userDTO.getLastname(),
-                userDTO.getFirstname()
+                userDTO.getFirstname(),
+                uuid
         );
     }
 

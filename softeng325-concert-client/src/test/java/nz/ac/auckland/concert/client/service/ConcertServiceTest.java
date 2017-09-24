@@ -294,7 +294,7 @@ public class ConcertServiceTest {
             }
 
             LocalDateTime dateTime = LocalDateTime.of(2017, 2, 24, 17, 00);
-            ReservationRequestDTO request = new ReservationRequestDTO(totalNumberOfStandardSeats, PriceBand.PriceBandB, 1L, dateTime);
+            ReservationRequestDTO request = new ReservationRequestDTO(totalNumberOfStandardSeats, PriceBand.PriceBandB, 1L, dateTime); // reserve all seats
 
             ReservationDTO reservation = _service.reserveSeats(request);
 

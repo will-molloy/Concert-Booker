@@ -25,11 +25,15 @@ public class User {
     @Column(name = "last_name", nullable = false)
     private String lastname;
 
-    public User(String username, String password, String lastname, String firstname) {
+    @Column(name = "UUID")
+    private String uuid;
+
+    public User(String username, String password, String lastname, String firstname, String uuid) {
         this.username = username;
         this.password = password;
         this.lastname = lastname;
         this.firstname = firstname;
+        this.uuid = uuid;
     }
 
     protected User() {
@@ -80,6 +84,7 @@ public class User {
                 append(password, rhs.password).
                 append(firstname, rhs.firstname).
                 append(lastname, rhs.lastname).
+                append(uuid, rhs.uuid).
                 isEquals();
     }
 
@@ -90,6 +95,7 @@ public class User {
                 append(password).
                 append(firstname).
                 append(lastname).
+                append(uuid).
                 hashCode();
     }
 }

@@ -10,6 +10,7 @@ import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import nz.ac.auckland.concert.common.dto.*;
 import nz.ac.auckland.concert.common.message.Messages;
+import nz.ac.auckland.concert.service.services.util.DataVerifier;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -268,6 +269,7 @@ public class DefaultService implements ConcertService {
      */
     @Override
     public ReservationDTO reserveSeats(ReservationRequestDTO reservationRequest) throws ServiceException {
+
         ReservationDTO reservation = null;
         int status;
         try {
@@ -292,8 +294,21 @@ public class DefaultService implements ConcertService {
             processCookieThenCloseResponseAndClient();
         }
 
-        if (status == Response.Status.BAD_REQUEST.getStatusCode()) {
-            throw new ServiceException(Messages.RESERVATION_REQUEST_WITH_MISSING_FIELDS);
+        if (status == Response.Status.UNAUTHORIZED.getStatusCode()) {
+            throw new ServiceException(Messages.UNAUTHENTICATED_REQUEST);
+        }
+        if (status == Response.Status.FORBIDDEN.getStatusCode()) {
+            throw new ServiceException(Messages.BAD_AUTHENTICATON_TOKEN);
+        }
+        if (status == Response.Status.BAD_REQUEST.getStatusCode()){
+            if (!DataVerifier.allFieldsAreSet(reservationRequest)){ // Already checked htis??
+                throw new ServiceException(Messages.RESERVATION_REQUEST_WITH_MISSING_FIELDS);
+            } else {
+                throw new ServiceException(Messages.CONCERT_NOT_SCHEDULED_ON_RESERVATION_DATE);
+            }
+        }
+        if (status == Response.Status.NOT_FOUND.getStatusCode()){
+            throw new ServiceException(Messages.INSUFFICIENT_SEATS_AVAILABLE_FOR_RESERVATION);
         }
 
         return reservation;

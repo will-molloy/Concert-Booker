@@ -4,6 +4,7 @@ import nz.ac.auckland.concert.common.dto.ConcertDTO;
 import nz.ac.auckland.concert.common.dto.PerformerDTO;
 import nz.ac.auckland.concert.common.dto.ReservationRequestDTO;
 import nz.ac.auckland.concert.common.dto.UserDTO;
+import nz.ac.auckland.concert.common.message.Messages;
 import nz.ac.auckland.concert.service.domain.Concert;
 import nz.ac.auckland.concert.service.domain.Performer;
 import nz.ac.auckland.concert.service.domain.User;
@@ -65,7 +66,7 @@ public class ConcertResource {
 
     @Path(CONCERTS_URI)
     @GET
-    public Response retrieveAllConcerts(@CookieParam(CLIENT_COOKIE) Cookie cookie) {
+    public Response retrieveAllConcerts(@CookieParam(CLIENT_COOKIE) Cookie clientId) {
         logger.info("Retrieving all concerts.");
 
         beginTransaction();
@@ -75,15 +76,16 @@ public class ConcertResource {
         Set<ConcertDTO> concertDTOS = new HashSet<>();
         concertDTOS.addAll(concerts.stream().map(ConcertMapper::toDto).collect(Collectors.toSet()));
 
-        GenericEntity<Set<ConcertDTO>> entity = new GenericEntity<Set<ConcertDTO>>(concertDTOS) {};
+        GenericEntity<Set<ConcertDTO>> entity = new GenericEntity<Set<ConcertDTO>>(concertDTOS) {
+        };
         return Response.ok(entity)
-                .cookie(makeCookie(cookie))
+                .cookie(makeCookie(clientId))
                 .build();
     }
 
     @Path(PERFORMERS_URI)
     @GET
-    public Response retrieveAllPerformers(@CookieParam(CLIENT_COOKIE) Cookie cookie) {
+    public Response retrieveAllPerformers(@CookieParam(CLIENT_COOKIE) Cookie clientId) {
         logger.info("Retrieving all performers.");
 
         beginTransaction();
@@ -96,14 +98,16 @@ public class ConcertResource {
         GenericEntity<Set<PerformerDTO>> entity = new GenericEntity<Set<PerformerDTO>>(performerDTOS) {
         };
         return Response.ok(entity) // 200 OK status
-                .cookie(makeCookie(cookie))
+                .cookie(makeCookie(clientId))
                 .build();
     }
 
     @Path(USERS_URI)
     @POST
-    public Response createUser(UserDTO userDTO, @CookieParam(CLIENT_COOKIE) Cookie cookie) {
+    public Response createUser(UserDTO userDTO, @CookieParam(CLIENT_COOKIE) Cookie clientId) {
         logger.info("Attempting to persist new user: " + userDTO.getUsername());
+        NewCookie newCookie = makeCookie(clientId);
+        String uuid = newCookie.getValue();
 
         // Check all fields have been set
         if (!DataVerifier.allFieldsAreSet(userDTO)) {
@@ -114,7 +118,7 @@ public class ConcertResource {
             throw new WebApplicationException(Response.Status.CONFLICT); // 409 Conflict status
         }
 
-        User user = UserMapper.toDomain(userDTO);
+        User user = UserMapper.toDomain(userDTO, uuid);
 
         // Persist the new user
         beginTransaction();
@@ -124,7 +128,7 @@ public class ConcertResource {
         logger.info("Persisted new user: " + user.getUsername());
 
         return Response.created(URI.create(USERS_URI + "/" + userDTO.getUsername())) // 201 Created status
-                .cookie(makeCookie(cookie))
+                .cookie(newCookie)
                 .build();
     }
 
@@ -137,7 +141,7 @@ public class ConcertResource {
 
     @Path(USERS_URI + LOGIN_URI)
     @POST
-    public Response authenticateUser(UserDTO userDTO, @CookieParam(CLIENT_COOKIE) Cookie cookie) {
+    public Response authenticateUser(UserDTO userDTO, @CookieParam(CLIENT_COOKIE) Cookie clientId) {
         logger.info("Attempting to authenticate user: " + userDTO.getUsername());
 
         // Check the username and password fields were set
@@ -162,36 +166,71 @@ public class ConcertResource {
         logger.info("Authenticated user: " + user.getUsername());
 
         return Response.ok(UserMapper.toDTO(user))
-                .cookie(makeCookie(cookie))
+                .cookie(makeCookie(clientId))
                 .build();
     }
 
-    @Path(USERS_URI + RESERVATION_URI) // TODO decide on URI? Post - return a newly created one.. PUT - client decides. Must change in ClientService too.
-    @POST // TODO https://stackoverflow.com/questions/6203231/which-http-methods-match-up-to-which-crud-methods
-    public Response makeReservation(ReservationRequestDTO reservationRequestDTO, @CookieParam(CLIENT_COOKIE) Cookie cookie) {
+    // TODO decide on URI? Post - return a newly created one.. PUT - client decides. Must change in ClientService too.
+    // TODO https://stackoverflow.com/questions/6203231/which-http-methods-match-up-to-which-crud-methods
+    @Path(USERS_URI + RESERVATION_URI)
+    @POST
+    public Response makeReservation(ReservationRequestDTO reservationRequestDTO, @CookieParam(CLIENT_COOKIE) Cookie clientId) {
         logger.info("Attempting to make reservation.");
 
         // Check all parameters have been set in the reservation request
-        if (!DataVerifier.allFieldsAreSet(reservationRequestDTO)){
-            throw new WebApplicationException(Response.Status.BAD_REQUEST); // 400
+        if (!DataVerifier.allFieldsAreSet(reservationRequestDTO)) {
+            throw new WebApplicationException(Response.Status.BAD_REQUEST);
         }
+
+        // Check request included an authentication token
+        if (Objects.isNull(clientId)){
+            throw new WebApplicationException(Response.Status.UNAUTHORIZED);
+        }
+
+        // Check user is authenticated i.e. exists in the database
+        String uuid = clientId.getValue();
+        beginTransaction();
+        List<User> users = entityManager.createQuery("SELECT u FROM User u WHERE uuid = \'" + uuid + "\'", User.class).getResultList();
+        commitTransaction();
+
+        // Multiple users with same UUID
+        if (users.size() > 1){
+            throw new WebApplicationException(Response.Status.CONFLICT);
+        }
+        // User included UUID but wasn't found in the database
+        if (users.isEmpty()){
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
+
+        // Check concert is available on that date -- badreq
+
+        // Check the seats are available -- notfound
+
+
 
         return null;
     }
 
     /**
-     * TODO Cookie goes into default service...???? Default service would have to pass it to here ????
+     * Helper method that can be called from every service method to generate a
+     * NewCookie instance, if necessary, based on the clientId parameter.
      *
-     * @param cookie
-     * @return
+     * @param clientId the Cookie whose name is CLIENT_COOKIE, extracted
+     *                 from a HTTP request message. This can be null if there was no cookie
+     *                 named Config.CLIENT_COOKIE present in the HTTP request message.
+     * @return a NewCookie object, with a generated UUID value, if the clientId
+     * parameter is null. If the clientId parameter is non-null (i.e. the HTTP
+     * request message contained a cookie named CLIENT_COOKIE), this
+     * method returns null as there's no need to return a NewCookie in the HTTP
+     * response message.
      */
-    private NewCookie makeCookie(Cookie cookie) {
+    private NewCookie makeCookie(Cookie clientId) {
         NewCookie newCookie;
-        if (cookie == null) {
+        if (clientId == null) {
             newCookie = new NewCookie(CLIENT_COOKIE, UUID.randomUUID().toString());
             logger.info("Generated cookie: " + newCookie.getValue());
         } else {
-            newCookie = new NewCookie(cookie);
+            newCookie = new NewCookie(clientId);
         }
         return newCookie;
     }

@@ -133,11 +133,11 @@ public interface ConcertService {
      *                          <p>
      *                          Condition: the ReservationRequestDTO parameter specifies a reservation
      *                          date/time for when the concert is not scheduled.
-     *                          Messages.CONCERT_NOT_SCHEDULED_ON_RESERVATION_DATE
+     *                          Messages.CONCERT_NOT_SCHEDULED_ON_RESERVATION_DATE -  400 badreq
      *                          <p>
      *                          Condition: the reservation request is unsuccessful because the number of
      *                          seats within the required price band are unavailable.
-     *                          Messages.INSUFFICIENT_SEATS_AVAILABLE_FOR_RESERVATION
+     *                          Messages.INSUFFICIENT_SEATS_AVAILABLE_FOR_RESERVATION - 404 not found
      *                          <p>
      *                          Condition: there is a communication error.
      *                          Messages.SERVICE_COMMUNICATION_ERROR
