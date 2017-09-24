@@ -37,7 +37,7 @@ public class DefaultService implements ConcertService {
     // Name of the S3 bucket that stores images.
     private static final String AWS_BUCKET = "concert.aucklanduni.ac.nz";
 
-    private static Set<String> cookieValues = new HashSet<>();
+    private Set<String> cookieValues = new HashSet<>();
 
     private Client client;
     private Response response;
