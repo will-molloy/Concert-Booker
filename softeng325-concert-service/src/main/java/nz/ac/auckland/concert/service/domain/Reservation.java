@@ -1,6 +1,9 @@
 package nz.ac.auckland.concert.service.domain;
 
+import nz.ac.auckland.concert.common.dto.ReservationDTO;
 import nz.ac.auckland.concert.common.types.PriceBand;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -33,6 +36,15 @@ public class Reservation {
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(nullable = false, unique = true)
     private User user;
+
+    private boolean confirmed = false;
+
+    public Reservation(Concert concert, LocalDateTime date, User user, Set<Seat> seats){
+        this.concert = concert;
+        this.date = date;
+        this.user = user;
+        this.seats = seats;
+    }
 
     protected Reservation() {
     }
@@ -75,5 +87,43 @@ public class Reservation {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public boolean isConfirmed() {
+        return confirmed;
+    }
+
+    public void setConfirmed(boolean confirmed) {
+        this.confirmed = confirmed;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof Reservation))
+            return false;
+        if (obj == this)
+            return true;
+
+        Reservation rhs = (Reservation) obj;
+        return new EqualsBuilder().
+                append(concert, rhs.concert).
+                append(date, rhs.date).
+                append(user, rhs.user).
+                append(confirmed, rhs.confirmed).
+                append(seats, rhs.seats).
+                append(seatType, rhs.seatType).
+                isEquals();
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder(17, 31).
+                append(concert).
+                append(date).
+                append(user).
+                append(confirmed).
+                append(seats).
+                append(seatType).
+                hashCode();
     }
 }

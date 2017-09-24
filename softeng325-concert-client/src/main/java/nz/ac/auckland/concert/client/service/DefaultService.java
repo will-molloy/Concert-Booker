@@ -10,7 +10,6 @@ import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import nz.ac.auckland.concert.common.dto.*;
 import nz.ac.auckland.concert.common.message.Messages;
-import nz.ac.auckland.concert.service.services.util.DataVerifier;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -44,20 +43,32 @@ public class DefaultService implements ConcertService {
     private Response response;
 
     /**
-     * Creates a new client connection
+     * Resets any error message and status code and creates a new client connection.
      */
-    private void createNewClientConnection() {
+    private void resetErrorStatusAndCreateNewClientConnection() {
         client = ClientBuilder.newClient();
     }
 
     /**
-     * Stores any cookie returned in the HTTP response message then closes
-     * the response and client connection.
+     * Processes the client cookie,
+     * then checks the response for error,
+     * then closes both connections.
      */
-    private void processCookieThenCloseResponseAndClient() {
+    private void processCookieThenCheckResponseStatusAndCloseClientConnection() throws ServiceException {
         processCookieFromResponse(response);
-        response.close();
+        checkResponseStatusCodeForError();
         client.close();
+        response.close();
+    }
+
+    private void checkResponseStatusCodeForError() throws ServiceException {
+        switch (response.getStatus()) {
+            case 400: // BAD_REQUEST
+            case 401: // UNAUTHORIZED
+            case 404: // NOT_FOUND
+            case 500: // INTERNAL_SERVER_ERROR
+                throw new ServiceException(response.readEntity(String.class));
+        }
     }
 
     /**
@@ -90,9 +101,9 @@ public class DefaultService implements ConcertService {
      */
     @Override
     public Set<ConcertDTO> getConcerts() throws ServiceException {
-        Set<ConcertDTO> concerts;
+        Set<ConcertDTO> concerts = null;
         try {
-            createNewClientConnection();
+            resetErrorStatusAndCreateNewClientConnection();
 
             Builder builder = client.target(WEB_SERVICE_URI + CONCERTS_URI)
                     .request()
@@ -101,13 +112,14 @@ public class DefaultService implements ConcertService {
             addCookieToInvocation(builder);
             response = builder.get();
 
-            concerts = response.readEntity(new GenericType<Set<ConcertDTO>>() {
-            });
+            if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+                concerts = response.readEntity(new GenericType<Set<ConcertDTO>>() {
+                });
+            }
         } catch (Exception e) {
-            e.printStackTrace();
             throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
         } finally {
-            processCookieThenCloseResponseAndClient();
+            processCookieThenCheckResponseStatusAndCloseClientConnection();
         }
         return concerts;
     }
@@ -117,9 +129,9 @@ public class DefaultService implements ConcertService {
      */
     @Override
     public Set<PerformerDTO> getPerformers() throws ServiceException {
-        Set<PerformerDTO> performers;
+        Set<PerformerDTO> performers = null;
         try {
-            createNewClientConnection();
+            resetErrorStatusAndCreateNewClientConnection();
 
             Builder builder = client.target(WEB_SERVICE_URI + PERFORMERS_URI)
                     .request()
@@ -128,13 +140,14 @@ public class DefaultService implements ConcertService {
             addCookieToInvocation(builder);
             response = builder.get();
 
-            performers = response.readEntity(new GenericType<Set<PerformerDTO>>() {
-            });
+            if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+                performers = response.readEntity(new GenericType<Set<PerformerDTO>>() {
+                });
+            }
         } catch (Exception e) {
-            e.printStackTrace();
             throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
         } finally {
-            processCookieThenCloseResponseAndClient();
+            processCookieThenCheckResponseStatusAndCloseClientConnection();
         }
         return performers;
     }
@@ -144,9 +157,9 @@ public class DefaultService implements ConcertService {
      */
     @Override
     public UserDTO createUser(UserDTO newUser) throws ServiceException {
-        int status;
+        UserDTO userDTO = null;
         try {
-            createNewClientConnection();
+            resetErrorStatusAndCreateNewClientConnection();
 
             Builder builder = client.target(WEB_SERVICE_URI + USERS_URI)
                     .request();
@@ -154,22 +167,15 @@ public class DefaultService implements ConcertService {
             addCookieToInvocation(builder);
             response = builder.post(Entity.entity(newUser, MediaType.APPLICATION_XML));
 
-            status = response.getStatus();
+            if (response.getStatus() == Response.Status.CREATED.getStatusCode()) {
+                userDTO = response.readEntity(UserDTO.class);
+            }
         } catch (Exception e) {
-            e.printStackTrace();
             throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
         } finally {
-            processCookieThenCloseResponseAndClient();
+            processCookieThenCheckResponseStatusAndCloseClientConnection();
         }
-
-        if (status == Response.Status.CONFLICT.getStatusCode()) {
-            throw new ServiceException(Messages.CREATE_USER_WITH_NON_UNIQUE_NAME);
-
-        } else if (status == Response.Status.BAD_REQUEST.getStatusCode()) {
-            throw new ServiceException(Messages.CREATE_USER_WITH_MISSING_FIELDS);
-        }
-
-        return newUser; // "identity property is also set", username is that property...? TODO I guess that means the cookie / Authentication token!!
+        return userDTO;
     }
 
     /**
@@ -178,9 +184,8 @@ public class DefaultService implements ConcertService {
     @Override
     public UserDTO authenticateUser(UserDTO user) throws ServiceException {
         UserDTO authenticatedUser = null;
-        int status;
         try {
-            createNewClientConnection();
+            resetErrorStatusAndCreateNewClientConnection();
 
             Builder builder = client.target(WEB_SERVICE_URI + USERS_URI + LOGIN_URI)
                     .request()
@@ -189,27 +194,14 @@ public class DefaultService implements ConcertService {
             addCookieToInvocation(builder);
             response = builder.post(Entity.entity(user, MediaType.APPLICATION_XML));
 
-            status = response.getStatus();
-
-            if (status == Response.Status.OK.getStatusCode()) {
+            if (response.getStatus() == Response.Status.OK.getStatusCode()) {
                 authenticatedUser = response.readEntity(UserDTO.class);
             }
         } catch (Exception e) {
-            e.printStackTrace();
             throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
         } finally {
-            processCookieThenCloseResponseAndClient();
+            processCookieThenCheckResponseStatusAndCloseClientConnection();
         }
-        if (status == Response.Status.BAD_REQUEST.getStatusCode()) {
-            throw new ServiceException(Messages.AUTHENTICATE_USER_WITH_MISSING_FIELDS);
-
-        } else if (status == Response.Status.NOT_FOUND.getStatusCode()) {
-            throw new ServiceException(Messages.AUTHENTICATE_NON_EXISTENT_USER);
-
-        } else if (status == Response.Status.UNAUTHORIZED.getStatusCode()) {
-            throw new ServiceException(Messages.AUTHENTICATE_USER_WITH_ILLEGAL_PASSWORD);
-        }
-
         return authenticatedUser;
     }
 
@@ -270,9 +262,8 @@ public class DefaultService implements ConcertService {
     @Override
     public ReservationDTO reserveSeats(ReservationRequestDTO reservationRequest) throws ServiceException {
         ReservationDTO reservation = null;
-        int status;
         try {
-            createNewClientConnection();
+            resetErrorStatusAndCreateNewClientConnection();
 
             Builder builder = client.target(WEB_SERVICE_URI + USERS_URI + RESERVATION_URI)
                     .request()
@@ -281,35 +272,14 @@ public class DefaultService implements ConcertService {
             addCookieToInvocation(builder);
             response = builder.post(Entity.entity(reservationRequest, MediaType.APPLICATION_XML));
 
-            status = response.getStatus();
-
-            if (status == Response.Status.CREATED.getStatusCode()) {
+            if (response.getStatus() == Response.Status.CREATED.getStatusCode()){
                 reservation = response.readEntity(ReservationDTO.class);
             }
         } catch (Exception e) {
-            e.printStackTrace();
             throw new WebServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
         } finally {
-            processCookieThenCloseResponseAndClient();
+            processCookieThenCheckResponseStatusAndCloseClientConnection();
         }
-
-        if (status == Response.Status.UNAUTHORIZED.getStatusCode()) {
-            throw new ServiceException(Messages.UNAUTHENTICATED_REQUEST);
-        }
-        if (status == Response.Status.FORBIDDEN.getStatusCode()) {
-            throw new ServiceException(Messages.BAD_AUTHENTICATON_TOKEN);
-        }
-        if (status == Response.Status.BAD_REQUEST.getStatusCode()) {
-            if (!DataVerifier.allFieldsAreSet(reservationRequest)) {
-                throw new ServiceException(Messages.RESERVATION_REQUEST_WITH_MISSING_FIELDS);
-            } else {
-                throw new ServiceException(Messages.CONCERT_NOT_SCHEDULED_ON_RESERVATION_DATE);
-            }
-        }
-        if (status == Response.Status.NOT_FOUND.getStatusCode()) {
-            throw new ServiceException(Messages.INSUFFICIENT_SEATS_AVAILABLE_FOR_RESERVATION);
-        }
-
         return reservation;
     }
 
