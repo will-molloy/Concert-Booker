@@ -19,7 +19,6 @@ import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
-import javax.xml.ws.WebServiceException;
 import java.awt.*;
 import java.io.File;
 import java.util.HashSet;
@@ -272,11 +271,11 @@ public class DefaultService implements ConcertService {
             addCookieToInvocation(builder);
             response = builder.post(Entity.entity(reservationRequest, MediaType.APPLICATION_XML));
 
-            if (response.getStatus() == Response.Status.CREATED.getStatusCode()){
+            if (response.getStatus() == Response.Status.CREATED.getStatusCode()) {
                 reservation = response.readEntity(ReservationDTO.class);
             }
         } catch (Exception e) {
-            throw new WebServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
+            throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
         } finally {
             processCookieThenCheckResponseStatusAndCloseClientConnection();
         }

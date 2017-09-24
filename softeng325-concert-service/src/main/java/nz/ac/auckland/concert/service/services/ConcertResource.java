@@ -12,9 +12,9 @@ import nz.ac.auckland.concert.common.util.TheatreLayout;
 import nz.ac.auckland.concert.service.domain.*;
 import nz.ac.auckland.concert.service.services.mappers.ConcertMapper;
 import nz.ac.auckland.concert.service.services.mappers.PerformerMapper;
+import nz.ac.auckland.concert.service.services.mappers.ReservationMapper;
 import nz.ac.auckland.concert.service.services.mappers.UserMapper;
 import nz.ac.auckland.concert.service.services.util.DataVerifier;
-import org.jboss.resteasy.spi.UnauthorizedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +28,7 @@ import java.net.URI;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static nz.ac.auckland.concert.common.config.CookieConfig.CLIENT_COOKIE;
 import static nz.ac.auckland.concert.common.config.URIConfig.*;
@@ -48,9 +49,9 @@ import static nz.ac.auckland.concert.common.config.URIConfig.*;
 @Consumes({javax.ws.rs.core.MediaType.APPLICATION_XML})
 public class ConcertResource {
 
+    static boolean newCall = false;
     private static Logger logger = LoggerFactory
             .getLogger(ConcertResource.class);
-
     private EntityManager entityManager = PersistenceManager.instance().createEntityManager();
 
     /**
@@ -193,6 +194,10 @@ public class ConcertResource {
     @Path(USERS_URI + RESERVATION_URI)
     @POST
     public Response makeReservation(ReservationRequestDTO reservationRequestDTO, @CookieParam(CLIENT_COOKIE) Cookie clientId) {
+        if (newCall) {
+            logger.info("2nd makeReservation call -- DEBUGGING PURPOSES");
+        }
+        newCall = true;
         logger.info("Attempting to make reservation.");
 
         // Check all parameters have been set in the reservation request
@@ -248,59 +253,62 @@ public class ConcertResource {
                     .build());
         }
 
-        // Check seats are available
-        // Get all reservations for the requested concert, date and seat type
+        // Check there are seats available for the requested concert, date and seat type.
+
+        // Total set of seats for the given seat type:
         PriceBand seatType = reservationRequestDTO.getSeatType();
+        Set<SeatRow> rowsForSeatType = TheatreLayout.getRowsForPriceBand(seatType);
+        Set<Seat> totalSeatsInGivenSeatType = new HashSet<>();
+        rowsForSeatType.forEach(row ->
+                IntStream.rangeClosed(1, TheatreLayout.getNumberOfSeatsForRow(row)).forEach(seatNumber ->
+                        totalSeatsInGivenSeatType.add(new Seat(row, new SeatNumber(seatNumber)))
+                ));
+
+        // Set of seats that are reserved:
         beginTransaction();
         List<Reservation> reservations = entityManager.createQuery("SELECT r " +
-                "FROM Reservation r " +
-                "WHERE r.concert = \'" + concertId + "\' " +
-                "AND r.date = \'" + date + "\'" +
-                "AND r.seatType = \'" + seatType + "\'"
+                        "FROM Reservation r " +
+                        "WHERE r.concert = \'" + concertId + "\' " +
+                        "AND r.date = \'" + date + "\'" +
+                        "AND r.seatType = \'" + seatType + "\'"
                 , Reservation.class).getResultList();
         commitTransaction();
-
-        // Ensure the number of remaining seats is sufficient
-        int numRequiredSeats = reservationRequestDTO.getNumberOfSeats();
-
-        Set<SeatRow> rowsForSeatType = TheatreLayout.getRowsForPriceBand(seatType);
-        final int numTotalSeats = rowsForSeatType.stream().mapToInt(TheatreLayout::getNumberOfSeatsForRow).sum();
-
         Set<Seat> reservedSeats = new HashSet<>();
         reservations.forEach(reservation -> reservedSeats.addAll(reservation.getSeats()));
-        final int numReservedSeats = reservedSeats.size();
-        final int numAvailableSeats = numTotalSeats - numReservedSeats;
-        if (numRequiredSeats > numAvailableSeats){
-            throw new WebApplicationException(Response.Status.NOT_FOUND); //TODO 404 is wrong? use 3xx ??
+
+        // Set of seats that are available:
+        Set<Seat> availableSeats = new HashSet<>(totalSeatsInGivenSeatType);
+        availableSeats.removeAll(reservedSeats);
+
+        // Ensure the number of available seats is sufficient.
+        int numRequiredSeats = reservationRequestDTO.getNumberOfSeats();
+        if (numRequiredSeats > availableSeats.size()) {
+            throw new BadRequestException(Response
+                    .status(Response.Status.BAD_REQUEST)
+                    .entity(Messages.INSUFFICIENT_SEATS_AVAILABLE_FOR_RESERVATION)
+                    .build());
+        }
+
+        // Select seats from the set of available seats
+        Set<Seat> requestedSeats = new HashSet<>();
+        Iterator<Seat> iterator = availableSeats.iterator();
+        while (numRequiredSeats-- > 0) {
+            requestedSeats.add(iterator.next());
         }
 
         // Create reservation for the user
         Concert concert = concerts.get(0);
         User user = users.get(0);
 
-        // Select seats from the set of available seats
-        Set<Seat> totalSeatsInSeatType = new HashSet<>();
-
-        for (SeatRow row : rowsForSeatType){
-            for (int i = 0 ; i < TheatreLayout.getNumberOfSeatsForRow(row); i++){
-                totalSeatsInSeatType.add(new Seat(row, new SeatNumber(i)));
-            }
-        }
-        Set<Seat> availableSeats = new HashSet<>(totalSeatsInSeatType);
-        availableSeats.removeAll(reservedSeats);
-        while (numRequiredSeats-- > 0){
-
-        }
-
-
-        Reservation reservation = new Reservation(concert, reservationRequestDTO.getDate(), user, availableSeats);
+        Reservation newReservation = new Reservation(concert, reservationRequestDTO.getDate(), seatType, requestedSeats, user);
         beginTransaction();
-        entityManager.persist(reservation);
+        entityManager.persist(newReservation);
         commitTransaction();
 
-        logger.info("Persisted new reservation: " + reservation.toString());
+        logger.info("Persisted new reservation: " + newReservation.toString());
 
-        return Response.created(URI.create(USERS_URI + RESERVATION_URI + "/" + reservation.toString())) // 201 Created status
+        return Response.created(URI.create(USERS_URI + RESERVATION_URI + "/" + newReservation.toString())) // 201 Created status
+                .entity(ReservationMapper.toDto(newReservation))
                 .cookie(makeCookie(clientId))
                 .build();
     }

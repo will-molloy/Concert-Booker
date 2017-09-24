@@ -26,7 +26,8 @@ public class User {
     @Column(name = "UUID")
     private String uuid;
 
-    @OneToMany(mappedBy = "user")
+    // Delete reservations on removal
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER, mappedBy = "user")
     private Set<Reservation> reservations;
 
     public User(String username, String password, String lastname, String firstname, String uuid) {
@@ -38,6 +39,14 @@ public class User {
     }
 
     protected User() {
+    }
+
+    public void addReservation(Reservation reservation) {
+        reservations.add(reservation);
+    }
+
+    public void removeReservation(Reservation reservation) {
+        reservations.remove(reservation);
     }
 
     public String getUsername() {

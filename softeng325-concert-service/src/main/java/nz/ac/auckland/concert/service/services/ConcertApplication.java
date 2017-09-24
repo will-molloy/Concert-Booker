@@ -1,9 +1,13 @@
 package nz.ac.auckland.concert.service.services;
 
+import nz.ac.auckland.concert.service.domain.Reservation;
+import nz.ac.auckland.concert.service.domain.User;
+
 import javax.persistence.EntityManager;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -38,8 +42,11 @@ public class ConcertApplication extends Application {
             entityManager = PersistenceManager.instance().createEntityManager();
             entityManager.getTransaction().begin();
 
-            entityManager.createQuery("delete from User").executeUpdate();
-            entityManager.createQuery("delete from Reservation").executeUpdate();
+            List<Reservation> reservations = entityManager.createQuery("SELECT r FROM Reservation r", Reservation.class).getResultList();
+            reservations.forEach(entityManager::remove);
+
+            List<User> users = entityManager.createQuery("SELECT u FROM User u", User.class).getResultList();
+            users.forEach(entityManager::remove);
 
             entityManager.flush();
             entityManager.clear();

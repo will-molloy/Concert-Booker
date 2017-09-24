@@ -1,6 +1,5 @@
 package nz.ac.auckland.concert.service.domain;
 
-import nz.ac.auckland.concert.common.dto.ReservationDTO;
 import nz.ac.auckland.concert.common.types.PriceBand;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -27,26 +26,27 @@ public class Reservation {
     @Enumerated(EnumType.STRING)
     private PriceBand seatType;
 
-    @ManyToOne(cascade = CascadeType.ALL)
+    @ManyToOne(cascade = CascadeType.PERSIST) // Don't delete concerts on removal
     @JoinColumn(nullable = false, unique = true)
     private Concert concert;
 
     private LocalDateTime date;
 
-    @ManyToOne(cascade = CascadeType.ALL)
+    @ManyToOne(cascade = CascadeType.PERSIST) // Don't delete users on removal
     @JoinColumn(nullable = false, unique = true)
     private User user;
 
     private boolean confirmed = false;
 
-    public Reservation(Concert concert, LocalDateTime date, User user, Set<Seat> seats){
-        this.concert = concert;
-        this.date = date;
-        this.user = user;
-        this.seats = seats;
+    protected Reservation() {
     }
 
-    protected Reservation() {
+    public Reservation(Concert concert, LocalDateTime date, PriceBand seatType, Set<Seat> seats, User user) {
+        this.concert = concert;
+        this.date = date;
+        this.seatType = seatType;
+        this.seats = seats;
+        this.user = user;
     }
 
     public Set<Seat> getSeats() {
@@ -125,5 +125,9 @@ public class Reservation {
                 append(seats).
                 append(seatType).
                 hashCode();
+    }
+
+    public long getId() {
+        return id;
     }
 }
