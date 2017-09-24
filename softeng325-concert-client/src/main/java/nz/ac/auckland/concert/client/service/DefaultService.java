@@ -269,7 +269,6 @@ public class DefaultService implements ConcertService {
      */
     @Override
     public ReservationDTO reserveSeats(ReservationRequestDTO reservationRequest) throws ServiceException {
-
         ReservationDTO reservation = null;
         int status;
         try {
@@ -284,7 +283,7 @@ public class DefaultService implements ConcertService {
 
             status = response.getStatus();
 
-            if (status == Response.Status.OK.getStatusCode()) {
+            if (status == Response.Status.CREATED.getStatusCode()) {
                 reservation = response.readEntity(ReservationDTO.class);
             }
         } catch (Exception e) {
@@ -301,7 +300,7 @@ public class DefaultService implements ConcertService {
             throw new ServiceException(Messages.BAD_AUTHENTICATON_TOKEN);
         }
         if (status == Response.Status.BAD_REQUEST.getStatusCode()) {
-            if (!DataVerifier.allFieldsAreSet(reservationRequest)) { // TODO Already checked this??
+            if (!DataVerifier.allFieldsAreSet(reservationRequest)) {
                 throw new ServiceException(Messages.RESERVATION_REQUEST_WITH_MISSING_FIELDS);
             } else {
                 throw new ServiceException(Messages.CONCERT_NOT_SCHEDULED_ON_RESERVATION_DATE);

@@ -27,7 +27,7 @@ public class User {
     private String uuid;
 
     @OneToMany(mappedBy = "user")
-    private Set<Booking> bookings;
+    private Set<Reservation> reservations;
 
     public User(String username, String password, String lastname, String firstname, String uuid) {
         this.username = username;
@@ -100,11 +100,11 @@ public class User {
                 hashCode();
     }
 
-    public Set<Booking> getBookings() {
-        return bookings;
+    public Set<Reservation> getReservations() {
+        return reservations;
     }
 
-    public void setBookings(Set<Booking> bookings) {
-        this.bookings = bookings;
+    public void setReservations(Set<Reservation> reservations) {
+        this.reservations = reservations;
     }
 }

@@ -49,7 +49,7 @@ public class Concert {
     private Set<Performer> performers;
 
     @OneToMany(mappedBy = "concert")
-    private Set<Booking> bookings;
+    private Set<Reservation> reservations;
 
     public Concert(String title) {
         this.title = title;
@@ -130,12 +130,12 @@ public class Concert {
         return id;
     }
 
-    public Set<Booking> getBookings() {
-        return bookings;
+    public Set<Reservation> getReservations() {
+        return reservations;
     }
 
-    public void setBookings(Set<Booking> bookings) {
-        this.bookings = bookings;
+    public void setReservations(Set<Reservation> reservations) {
+        this.reservations = reservations;
     }
 
     public void setPerformers(Set<Performer> performers) {

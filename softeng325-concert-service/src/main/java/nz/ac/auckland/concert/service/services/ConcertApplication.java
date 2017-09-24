@@ -39,6 +39,7 @@ public class ConcertApplication extends Application {
             entityManager.getTransaction().begin();
 
             entityManager.createQuery("delete from User").executeUpdate();
+            entityManager.createQuery("delete from Reservation").executeUpdate();
 
             entityManager.flush();
             entityManager.clear();

@@ -43,7 +43,6 @@ public class TheatreLayout {
         _rowsInPriceBandA = Collections.unmodifiableSet(_rowsInPriceBandA);
         _rowsInPriceBandB = Collections.unmodifiableSet(_rowsInPriceBandB);
         _rowsInPriceBandC = Collections.unmodifiableSet(_rowsInPriceBandC);
-
     }
 
     // This is utility class, so hide the constructor to prevent instantiation.
