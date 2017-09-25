@@ -322,6 +322,9 @@ public class ConcertResource {
     @POST
     public Response registerCreditCard(CreditCardDTO creditCardDTO, @CookieParam(CLIENT_COOKIE) Cookie clientId) {
         User user = checkAuthenticationTokenAndGetUser(clientId);
+
+        logger.info("Registering credit card for user :" + user.getUsername());
+
         CreditCard creditCard = CreditCardMapper.toDomain(creditCardDTO, user);
 
         beginTransaction();
@@ -337,6 +340,8 @@ public class ConcertResource {
     @POST
     public Response confirmReservation(ReservationDTO reservationDTO, @CookieParam(CLIENT_COOKIE) Cookie clientId) {
         User user = checkAuthenticationTokenAndGetUser(clientId);
+
+        logger.info("Confirming reservation for user :" + user.getUsername());
 
         // Check user has a registered credit card
         CreditCard creditCard = user.getCreditCard();
@@ -381,7 +386,7 @@ public class ConcertResource {
         int size = expiredReservations.size();
         expiredReservations.forEach(entityManager::remove);
         commitTransaction();
-        logger.info("Removed: " + size + ", expired reservation(s).");
+        logger.info("Removed: " + size + " expired reservation(s).");
     }
 
     @Path(USERS_URI + RESERVATION_URI)

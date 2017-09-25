@@ -52,9 +52,9 @@
                 read. use_sql_comments generates comments to explain why the SQL is
                 generated. When these properties are set to true, the output occurs
                 regardless of any log4j output-level settings. -->
-            <property name="hibernate.show_sql" value="true"/>
-            <property name="hibernate.format_sql" value="true"/>
-            <property name="hibernate.use_sql_comments" value="true"/>
+            <property name="hibernate.show_sql" value="false"/>
+            <property name="hibernate.format_sql" value="false"/>
+            <property name="hibernate.use_sql_comments" value="false"/>
         </properties>
     </persistence-unit>
 
