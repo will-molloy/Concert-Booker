@@ -43,8 +43,8 @@ public class ConcertServiceTest {
 
     private static final int SERVER_PORT = 10000;
     private static final String WEB_SERVICE_CLASS_NAME = ConcertApplication.class.getName();
-    private static Logger _logger = LoggerFactory
-            .getLogger(ConcertServiceTest.class);
+//    private static Logger _logger = LoggerFactory
+//            .getLogger(ConcertServiceTest.class);
     private static Client _client;
     private static Server _server;
 

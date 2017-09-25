@@ -103,31 +103,29 @@ public class Concert {
         return tariff.get(seatType);
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (!(obj instanceof Concert))
-            return false;
-        if (obj == this)
-            return true;
+    public long getId() {
+        return id;
+    }
 
-        Concert rhs = (Concert) obj;
-        return new EqualsBuilder().
-                append(title, rhs.title).
-                append(dates, rhs.dates).
-                append(tariff, rhs.tariff).
-                isEquals();
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Concert concert = (Concert) o;
+
+        if (id != concert.id) return false;
+        if (title != null ? !title.equals(concert.title) : concert.title != null) return false;
+        if (dates != null ? !dates.equals(concert.dates) : concert.dates != null) return false;
+        return tariff != null ? tariff.equals(concert.tariff) : concert.tariff == null;
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(17, 31).
-                append(title).
-                append(dates).
-                append(tariff).
-                hashCode();
-    }
-
-    public long getId() {
-        return id;
+        int result = (int) (id ^ (id >>> 32));
+        result = 31 * result + (title != null ? title.hashCode() : 0);
+        result = 31 * result + (dates != null ? dates.hashCode() : 0);
+        result = 31 * result + (tariff != null ? tariff.hashCode() : 0);
+        return result;
     }
 }
