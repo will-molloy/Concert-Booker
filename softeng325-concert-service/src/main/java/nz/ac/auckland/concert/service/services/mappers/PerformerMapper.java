@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 
 public class PerformerMapper {
 
-    public static PerformerDTO toDto(Performer performer) {
+    public static PerformerDTO toDTO(Performer performer) {
         return new PerformerDTO(
                 performer.getId(),
                 performer.getName(),

@@ -1,10 +1,13 @@
 package nz.ac.auckland.concert.service.domain;
 
 import nz.ac.auckland.concert.common.types.PriceBand;
+import org.hibernate.annotations.Cascade;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Set;
+
+import static org.hibernate.annotations.CascadeType.ALL;
 
 @Entity
 public class Reservation {
@@ -14,11 +17,8 @@ public class Reservation {
     @Column(nullable = false, unique = true)
     private long id;
 
-    @ElementCollection
-    @CollectionTable(
-            name = "RESERVATION_SEATS",
-            joinColumns = @JoinColumn(name = "reservation_id", nullable = false)
-    )
+    // unlock seats on removal
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "reservation")
     private Set<Seat> seats;
 
     @Enumerated(EnumType.STRING)
@@ -48,6 +48,8 @@ public class Reservation {
         this.seats = seats;
         this.user = user;
         this.expiryTime = expiryTime;
+
+        seats.forEach(seat -> seat.setReservation(this));
     }
 
     public Set<Seat> getSeats() {

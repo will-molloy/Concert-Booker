@@ -319,10 +319,32 @@ public class DefaultService implements ConcertService {
         }
     }
 
+    /**
+     * @see ConcertService#getBookings()
+     */
     @Override
     public Set<BookingDTO> getBookings() throws ServiceException {
-        // TODO Auto-generated method stub
-        return null;
+        Set<BookingDTO> bookings = null;
+        try {
+            createNewClientConnection();
+
+            Builder builder = client.target(WEB_SERVICE_URI + USERS_URI + RESERVATION_URI)
+                    .request()
+                    .accept(MediaType.APPLICATION_XML);
+
+            addCookieToInvocation(builder);
+            response = builder.get();
+
+            if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+                bookings = response.readEntity(new GenericType<Set<BookingDTO>>() {
+                });
+            }
+        } catch (Exception e) {
+            throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
+        } finally {
+            processCookieThenCheckResponseStatusAndCloseClientConnection();
+        }
+        return bookings;
     }
 
     @Override

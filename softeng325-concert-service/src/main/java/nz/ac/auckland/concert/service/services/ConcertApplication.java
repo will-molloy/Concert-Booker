@@ -1,6 +1,8 @@
 package nz.ac.auckland.concert.service.services;
 
+import nz.ac.auckland.concert.service.domain.CreditCard;
 import nz.ac.auckland.concert.service.domain.Reservation;
+import nz.ac.auckland.concert.service.domain.Seat;
 import nz.ac.auckland.concert.service.domain.User;
 
 import javax.persistence.EntityManager;
@@ -44,8 +46,10 @@ public class ConcertApplication extends Application {
             entityManager = PersistenceManager.instance().createEntityManager();
             entityManager.getTransaction().begin();
 
-            removeDomain(Reservation.class);
-            removeDomain(User.class);
+            removeDomainRows(Seat.class);
+            removeDomainRows(CreditCard.class);
+            removeDomainRows(Reservation.class);
+            removeDomainRows(User.class);
 
             entityManager.flush();
             entityManager.clear();
@@ -58,7 +62,7 @@ public class ConcertApplication extends Application {
         }
     }
 
-    private void removeDomain(Class<?> myClass) {
+    private void removeDomainRows(Class<?> myClass) {
         List<?> toRemove = entityManager.createQuery("SELECT q FROM " + myClass.getSimpleName() + " q", myClass).getResultList();
         toRemove.forEach(entityManager::remove);
     }

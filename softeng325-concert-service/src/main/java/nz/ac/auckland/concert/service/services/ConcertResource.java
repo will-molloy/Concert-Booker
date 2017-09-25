@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Cookie;
 import javax.ws.rs.core.GenericEntity;
@@ -20,7 +21,6 @@ import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -74,7 +74,7 @@ public class ConcertResource {
         commitTransaction();
 
         Set<ConcertDTO> concertDTOS = new HashSet<>();
-        concertDTOS.addAll(concerts.stream().map(ConcertMapper::toDto).collect(Collectors.toSet()));
+        concertDTOS.addAll(concerts.stream().map(ConcertMapper::toDTO).collect(Collectors.toSet()));
 
         GenericEntity<Set<ConcertDTO>> entity = new GenericEntity<Set<ConcertDTO>>(concertDTOS) {
         };
@@ -93,7 +93,7 @@ public class ConcertResource {
         commitTransaction();
 
         Set<PerformerDTO> performerDTOS = new HashSet<>();
-        performerDTOS.addAll(performers.stream().map(PerformerMapper::toDto).collect(Collectors.toSet()));
+        performerDTOS.addAll(performers.stream().map(PerformerMapper::toDTO).collect(Collectors.toSet()));
 
         GenericEntity<Set<PerformerDTO>> entity = new GenericEntity<Set<PerformerDTO>>(performerDTOS) {
         };
@@ -277,7 +277,7 @@ public class ConcertResource {
         logger.info("Persisted new reservation: " + newReservation.toString());
 
         return Response.created(URI.create(USERS_URI + RESERVATION_URI + "/" + newReservation.toString())) // 201 Created status
-                .entity(ReservationMapper.toDto(newReservation))
+                .entity(ReservationMapper.toReservationDTO(newReservation))
                 .cookie(makeCookie(clientId))
                 .build();
     }
@@ -340,39 +340,73 @@ public class ConcertResource {
 
         // Check user has a registered credit card
         CreditCard creditCard = user.getCreditCard();
-        if (Objects.isNull(creditCard)){
+        if (Objects.isNull(creditCard)) {
             throw new BadRequestException(Response
                     .status(Response.Status.BAD_REQUEST)
                     .entity(Messages.CREDIT_CARD_NOT_REGISTERED)
                     .build());
         }
 
-        // Check the reservation is still valid and confirm it
+        // Check the reservation is still valid and confirm it.
         removeExpiredReservations();
-        beginTransaction();
-        List<Reservation> reserved = entityManager.createQuery("SELECT r FROM Reservation r " +
-                "WHERE r.user = \'" + user.getUsername() + "\' " +
-                "AND r.confirmed = " + false, Reservation.class).getResultList();
+        try {
+            beginTransaction();
+            Reservation reservation = entityManager.createQuery(
+                    "SELECT r FROM Reservation r " +
+                    "WHERE r.user = \'" + user.getUsername() + "\' " +
+                    "AND r.id = " + reservationDTO.getId(),
+                    Reservation.class).getSingleResult();
 
-        reserved.forEach(reservation -> {
             reservation.setConfirmed(true);
             reservation.setExpiryDate(Long.MAX_VALUE);
             entityManager.merge(reservation);
-        });
-        commitTransaction();
+            commitTransaction();
+
+        } catch (NoResultException e){
+            throw new BadRequestException(Response
+                    .status(Response.Status.BAD_REQUEST)
+                    .entity(Messages.EXPIRED_RESERVATION)
+                    .build());
+        }
 
         return Response.noContent() // 204 No Content status
                 .cookie(makeCookie(clientId))
                 .build();
     }
 
-    private void removeExpiredReservations(){
+    private void removeExpiredReservations() {
         beginTransaction();
-        List<Reservation> expired = entityManager.createQuery("SELECT r FROM Reservation r " +
+        List<Reservation> expiredReservations = entityManager.createQuery("SELECT r FROM Reservation r " +
                 "WHERE r.expiryTime < " + System.currentTimeMillis(), Reservation.class).getResultList();
-        expired.forEach(entityManager::remove);
+        int size = expiredReservations.size();
+        expiredReservations.forEach(entityManager::remove);
+        commitTransaction();
+        logger.info("Removed: " + size + ", expired reservation(s).");
+    }
+
+    @Path(USERS_URI + RESERVATION_URI)
+    @GET
+    public Response getBookings(@CookieParam(CLIENT_COOKIE) Cookie clientId) {
+        User user = checkAuthenticationTokenAndGetUser(clientId);
+        removeExpiredReservations();
+
+        logger.info("Retrieving bookings for user :" + user.getUsername());
+
+        beginTransaction();
+        List<Reservation> reservations = entityManager.createQuery("SELECT r " +
+                "FROM Reservation r " +
+                "WHERE r.user = \'" + user.getUsername() + "\' " +
+                "AND r.confirmed = " + true, Reservation.class).getResultList();
         commitTransaction();
 
+        Set<BookingDTO> bookingsDTOs = new HashSet<>();
+        bookingsDTOs.addAll(reservations.stream().map(ReservationMapper::toBookingDTO).collect(Collectors.toSet()));
+
+        GenericEntity<Set<BookingDTO>> entity = new GenericEntity<Set<BookingDTO>>(bookingsDTOs) {
+        };
+        return Response.ok(entity)
+                .cookie(makeCookie(clientId))
+                .build();
     }
 
     /**

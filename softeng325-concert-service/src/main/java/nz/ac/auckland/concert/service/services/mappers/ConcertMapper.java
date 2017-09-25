@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 
 public class ConcertMapper {
 
-    public static ConcertDTO toDto(Concert concert) {
+    public static ConcertDTO toDTO(Concert concert) {
         return new ConcertDTO(
                 concert.getId(),
                 concert.getTitle(),

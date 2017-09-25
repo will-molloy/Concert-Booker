@@ -6,8 +6,13 @@ import nz.ac.auckland.concert.service.domain.jpa.SeatNumberConverter;
 
 import javax.persistence.*;
 
-@Embeddable
+@Entity
 public class Seat {
+
+    @Id
+    @GeneratedValue
+    @Column(nullable = false, unique = true)
+    private long id;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -16,6 +21,9 @@ public class Seat {
     @Convert(converter = SeatNumberConverter.class)
     @Column(nullable = false)
     private SeatNumber number;
+
+    @ManyToOne(cascade = CascadeType.ALL) // delete reservations on removal ?
+    private Reservation reservation;
 
     public Seat(SeatRow row, SeatNumber number) {
         this.row = row;
@@ -57,5 +65,13 @@ public class Seat {
         int result = row != null ? row.hashCode() : 0;
         result = 31 * result + (number != null ? number.hashCode() : 0);
         return result;
+    }
+
+    public Reservation getReservation() {
+        return reservation;
+    }
+
+    public void setReservation(Reservation reservation) {
+        this.reservation = reservation;
     }
 }

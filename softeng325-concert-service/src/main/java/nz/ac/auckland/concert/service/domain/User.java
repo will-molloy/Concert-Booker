@@ -28,7 +28,7 @@ public class User {
     private CreditCard creditCard;
 
     // Delete reservations on removal
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER, mappedBy = "user")
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "user")
     private Set<Reservation> reservations;
 
     public User(String username, String password, String lastname, String firstname, String uuid) {
