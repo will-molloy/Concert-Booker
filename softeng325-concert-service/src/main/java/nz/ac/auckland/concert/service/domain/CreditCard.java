@@ -14,14 +14,17 @@ public class CreditCard {
     private long id;
 
     @Enumerated
+    @Column(nullable = false)
     private CreditCardDTO.Type type;
 
     @OneToOne(mappedBy = "creditCard", cascade = CascadeType.PERSIST,
             fetch = FetchType.LAZY, optional = false)
     private User user;
 
+    @Column(nullable = false)
     private String number;
 
+    @Column(nullable = false)
     private LocalDate expiryDate;
 
     protected CreditCard() {

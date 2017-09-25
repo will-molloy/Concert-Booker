@@ -22,20 +22,24 @@ public class Reservation {
     private Set<Seat> seats;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private PriceBand seatType;
 
     @ManyToOne // unidirectional
-    @JoinColumn(referencedColumnName = "id", name="concert_id", nullable = false, unique = true)
+    @JoinColumn(referencedColumnName = "id", nullable = false, unique = true)
     private Concert concert;
 
+    @Column(nullable = false)
     private LocalDateTime date;
 
     @ManyToOne(cascade = CascadeType.PERSIST) // Don't delete users on removal
     @JoinColumn(nullable = false, unique = true)
     private User user;
 
+    @Column(nullable = false)
     private long expiryTime;
 
+    @Column(nullable = false)
     private boolean confirmed = false;
 
     protected Reservation() {

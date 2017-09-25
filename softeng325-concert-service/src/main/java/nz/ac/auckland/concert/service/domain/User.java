@@ -4,27 +4,24 @@ import javax.persistence.*;
 import java.util.Set;
 
 @Entity
-@Table(name = "USERS")
 public class User {
 
     @Id
-    @Column(name = "username", nullable = false, unique = true)
+    @Column(nullable = false, unique = true)
     private String username;
 
-    @Column(name = "password", nullable = false)
+    @Column(nullable = false)
     private String password;
 
-    @Column(name = "first_name", nullable = false)
+    @Column(nullable = false)
     private String firstname;
 
-    @Column(name = "last_name", nullable = false)
+    @Column(nullable = false)
     private String lastname;
 
-    @Column(name = "UUID")
     private String uuid;
 
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name = "creditCard_id")
     private CreditCard creditCard;
 
     // Delete reservations on removal

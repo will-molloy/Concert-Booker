@@ -27,9 +27,10 @@ public class Seat {
     @Column(nullable = false)
     private SeatNumber number;
 
-    // delete reservations on removal
-    // reservation has concert and date therefore all reserved seats are stored in the database
+    // ensure seats are bound to a reservation and delete reservations on removal
+    // reservation has concert and date therefore all reserved seats for all dates/concerts are stored in the database
     @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(nullable = false)
     private Reservation reservation;
 
     public Seat(SeatRow row, SeatNumber number) {
@@ -56,6 +57,22 @@ public class Seat {
         this.number = number;
     }
 
+    public Reservation getReservation() {
+        return reservation;
+    }
+
+    public void setReservation(Reservation reservation) {
+        this.reservation = reservation;
+    }
+
+    public long getVersion() {
+        return version;
+    }
+
+    protected void setVersion(long version) {
+        this.version = version;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -72,21 +89,5 @@ public class Seat {
         int result = row != null ? row.hashCode() : 0;
         result = 31 * result + (number != null ? number.hashCode() : 0);
         return result;
-    }
-
-    public Reservation getReservation() {
-        return reservation;
-    }
-
-    public void setReservation(Reservation reservation) {
-        this.reservation = reservation;
-    }
-
-    public long getVersion() {
-        return version;
-    }
-
-    protected void setVersion(long version) {
-        this.version = version;
     }
 }
