@@ -17,7 +17,7 @@ public class Reservation {
     @Column(nullable = false, unique = true)
     private long id;
 
-    // unlock seats on removal
+    // remove and unlock seats on removal
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "reservation")
     private Set<Seat> seats;
 

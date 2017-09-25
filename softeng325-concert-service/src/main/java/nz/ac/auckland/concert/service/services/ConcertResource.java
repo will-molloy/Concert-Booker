@@ -231,7 +231,7 @@ public class ConcertResource {
                         totalSeatsInGivenSeatType.add(new Seat(row, new SeatNumber(seatNumber)))
                 ));
 
-        // Set of seats that are reserved or booked:
+        // Set of seats that are reserved or booked for the given concert,date and seat type:
         beginTransaction();
         List<Reservation> reservations = entityManager.createQuery("SELECT r " +
                         "FROM Reservation r " +
@@ -264,7 +264,7 @@ public class ConcertResource {
             requestedSeats.add(iterator.next());
         }
 
-        // Persist reservation for the user, locking the seats.
+        // Persist reservation for the user, checking the lock on the seats
         Concert concert = concerts.get(0);
         long reservationExpiryTime = System.currentTimeMillis() + (5 * 1000);
 
