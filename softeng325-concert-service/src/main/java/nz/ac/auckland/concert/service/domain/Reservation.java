@@ -1,8 +1,6 @@
 package nz.ac.auckland.concert.service.domain;
 
 import nz.ac.auckland.concert.common.types.PriceBand;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -36,17 +34,20 @@ public class Reservation {
     @JoinColumn(nullable = false, unique = true)
     private User user;
 
+    private LocalDateTime expiryDate;
+
     private boolean confirmed = false;
 
     protected Reservation() {
     }
 
-    public Reservation(Concert concert, LocalDateTime date, PriceBand seatType, Set<Seat> seats, User user) {
+    public Reservation(Concert concert, LocalDateTime date, PriceBand seatType, Set<Seat> seats, User user, LocalDateTime expiryDate) {
         this.concert = concert;
         this.date = date;
         this.seatType = seatType;
         this.seats = seats;
         this.user = user;
+        this.expiryDate = expiryDate;
     }
 
     public Set<Seat> getSeats() {
@@ -101,6 +102,14 @@ public class Reservation {
         return id;
     }
 
+    public LocalDateTime getExpiryDate() {
+        return expiryDate;
+    }
+
+    public void setExpiryDate(LocalDateTime expiryDate) {
+        this.expiryDate = expiryDate;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -112,7 +121,8 @@ public class Reservation {
         if (confirmed != that.confirmed) return false;
         if (seats != null ? !seats.equals(that.seats) : that.seats != null) return false;
         if (seatType != that.seatType) return false;
-        return date != null ? date.equals(that.date) : that.date == null;
+        if (date != null ? !date.equals(that.date) : that.date != null) return false;
+        return expiryDate != null ? expiryDate.equals(that.expiryDate) : that.expiryDate == null;
     }
 
     @Override
@@ -121,6 +131,7 @@ public class Reservation {
         result = 31 * result + (seats != null ? seats.hashCode() : 0);
         result = 31 * result + (seatType != null ? seatType.hashCode() : 0);
         result = 31 * result + (date != null ? date.hashCode() : 0);
+        result = 31 * result + (expiryDate != null ? expiryDate.hashCode() : 0);
         result = 31 * result + (confirmed ? 1 : 0);
         return result;
     }

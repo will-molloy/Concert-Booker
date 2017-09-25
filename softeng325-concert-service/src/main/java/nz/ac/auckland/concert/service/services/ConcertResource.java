@@ -20,6 +20,7 @@ import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -266,8 +267,9 @@ public class ConcertResource {
 
         // Create reservation for the user
         Concert concert = concerts.get(0);
+        LocalDateTime reservationExpiryTime = LocalDateTime.now().plusSeconds(5);
 
-        Reservation newReservation = new Reservation(concert, reservationRequestDTO.getDate(), seatType, requestedSeats, user);
+        Reservation newReservation = new Reservation(concert, reservationRequestDTO.getDate(), seatType, requestedSeats, user, reservationExpiryTime);
         beginTransaction();
         entityManager.persist(newReservation);
         commitTransaction();

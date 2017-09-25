@@ -24,13 +24,16 @@ public class CreditCard {
 
     private LocalDate expiryDate;
 
-    protected CreditCard(){}
+    protected CreditCard() {
+    }
 
     public CreditCard(CreditCardDTO.Type type, User user, String number, LocalDate expiryDate) {
         this.type = type;
         this.user = user;
         this.number = number;
         this.expiryDate = expiryDate;
+
+        user.setCreditCard(this);
     }
 
     public CreditCardDTO.Type getType() {
