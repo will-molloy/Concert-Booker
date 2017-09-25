@@ -34,20 +34,20 @@ public class Reservation {
     @JoinColumn(nullable = false, unique = true)
     private User user;
 
-    private LocalDateTime expiryDate;
+    private long expiryTime;
 
     private boolean confirmed = false;
 
     protected Reservation() {
     }
 
-    public Reservation(Concert concert, LocalDateTime date, PriceBand seatType, Set<Seat> seats, User user, LocalDateTime expiryDate) {
+    public Reservation(Concert concert, LocalDateTime date, PriceBand seatType, Set<Seat> seats, User user, long expiryTime) {
         this.concert = concert;
         this.date = date;
         this.seatType = seatType;
         this.seats = seats;
         this.user = user;
-        this.expiryDate = expiryDate;
+        this.expiryTime = expiryTime;
     }
 
     public Set<Seat> getSeats() {
@@ -102,12 +102,12 @@ public class Reservation {
         return id;
     }
 
-    public LocalDateTime getExpiryDate() {
-        return expiryDate;
+    public long getExpiryDate() {
+        return expiryTime;
     }
 
-    public void setExpiryDate(LocalDateTime expiryDate) {
-        this.expiryDate = expiryDate;
+    public void setExpiryDate(long expiryDate) {
+        this.expiryTime = expiryDate;
     }
 
     @Override
@@ -118,11 +118,11 @@ public class Reservation {
         Reservation that = (Reservation) o;
 
         if (id != that.id) return false;
+        if (expiryTime != that.expiryTime) return false;
         if (confirmed != that.confirmed) return false;
         if (seats != null ? !seats.equals(that.seats) : that.seats != null) return false;
         if (seatType != that.seatType) return false;
-        if (date != null ? !date.equals(that.date) : that.date != null) return false;
-        return expiryDate != null ? expiryDate.equals(that.expiryDate) : that.expiryDate == null;
+        return date != null ? date.equals(that.date) : that.date == null;
     }
 
     @Override
@@ -131,7 +131,7 @@ public class Reservation {
         result = 31 * result + (seats != null ? seats.hashCode() : 0);
         result = 31 * result + (seatType != null ? seatType.hashCode() : 0);
         result = 31 * result + (date != null ? date.hashCode() : 0);
-        result = 31 * result + (expiryDate != null ? expiryDate.hashCode() : 0);
+        result = 31 * result + (int) (expiryTime ^ (expiryTime >>> 32));
         result = 31 * result + (confirmed ? 1 : 0);
         return result;
     }

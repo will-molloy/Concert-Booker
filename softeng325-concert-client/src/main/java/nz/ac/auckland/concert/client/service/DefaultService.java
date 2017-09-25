@@ -284,8 +284,19 @@ public class DefaultService implements ConcertService {
 
     @Override
     public void confirmReservation(ReservationDTO reservation) throws ServiceException {
-        // TODO Auto-generated method stub
+        try {
+            createNewClientConnection();
+            Builder builder = client.target(WEB_SERVICE_URI + USERS_URI + RESERVATION_URI + CONFIRM_URI)
+                    .request();
 
+            addCookieToInvocation(builder);
+            response = builder.post(Entity.entity(reservation, MediaType.APPLICATION_XML));
+
+        } catch (Exception e) {
+            throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
+        } finally {
+            processCookieThenCheckResponseStatusAndCloseClientConnection();
+        }
     }
 
     /**

@@ -267,7 +267,7 @@ public class ConcertResource {
 
         // Create reservation for the user
         Concert concert = concerts.get(0);
-        LocalDateTime reservationExpiryTime = LocalDateTime.now().plusSeconds(5);
+        long reservationExpiryTime = System.currentTimeMillis() + (5 * 1000);
 
         Reservation newReservation = new Reservation(concert, reservationRequestDTO.getDate(), seatType, requestedSeats, user, reservationExpiryTime);
         beginTransaction();
@@ -331,6 +331,48 @@ public class ConcertResource {
         return Response.noContent() // 204 No Content status
                 .cookie(makeCookie(clientId))
                 .build();
+    }
+
+    @Path(USERS_URI + RESERVATION_URI + CONFIRM_URI)
+    @POST
+    public Response confirmReservation(ReservationDTO reservationDTO, @CookieParam(CLIENT_COOKIE) Cookie clientId) {
+        User user = checkAuthenticationTokenAndGetUser(clientId);
+
+        // Check user has a registered credit card
+        CreditCard creditCard = user.getCreditCard();
+        if (Objects.isNull(creditCard)){
+            throw new BadRequestException(Response
+                    .status(Response.Status.BAD_REQUEST)
+                    .entity(Messages.CREDIT_CARD_NOT_REGISTERED)
+                    .build());
+        }
+
+        // Check the reservation is still valid and confirm it
+        removeExpiredReservations();
+        beginTransaction();
+        List<Reservation> reserved = entityManager.createQuery("SELECT r FROM Reservation r " +
+                "WHERE r.user = \'" + user.getUsername() + "\' " +
+                "AND r.confirmed = " + false, Reservation.class).getResultList();
+
+        reserved.forEach(reservation -> {
+            reservation.setConfirmed(true);
+            reservation.setExpiryDate(Long.MAX_VALUE);
+            entityManager.merge(reservation);
+        });
+        commitTransaction();
+
+        return Response.noContent() // 204 No Content status
+                .cookie(makeCookie(clientId))
+                .build();
+    }
+
+    private void removeExpiredReservations(){
+        beginTransaction();
+        List<Reservation> expired = entityManager.createQuery("SELECT r FROM Reservation r " +
+                "WHERE r.expiryTime < " + System.currentTimeMillis(), Reservation.class).getResultList();
+        expired.forEach(entityManager::remove);
+        commitTransaction();
+
     }
 
     /**

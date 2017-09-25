@@ -18,4 +18,6 @@ public class URIConfig {
     public static final String RESERVATION_URI = "/reserve";
 
     public static final String PAYMENT_URI = "/payment";
+
+    public static final String CONFIRM_URI = "/confirm";
 }
