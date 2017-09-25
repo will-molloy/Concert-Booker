@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.persistence.EntityManager;
+import javax.persistence.LockModeType;
 import javax.persistence.NoResultException;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Cookie;
@@ -44,7 +45,6 @@ import static nz.ac.auckland.concert.common.config.URIConfig.*;
 @Consumes({javax.ws.rs.core.MediaType.APPLICATION_XML})
 public class ConcertResource {
 
-    static boolean newCall = false;
     private static Logger logger = LoggerFactory
             .getLogger(ConcertResource.class);
     private EntityManager entityManager = PersistenceManager.instance().createEntityManager();
@@ -78,7 +78,7 @@ public class ConcertResource {
 
         GenericEntity<Set<ConcertDTO>> entity = new GenericEntity<Set<ConcertDTO>>(concertDTOS) {
         };
-        return Response.ok(entity)
+        return Response.ok(entity) // 200 OK status
                 .cookie(makeCookie(clientId))
                 .build();
     }
@@ -109,7 +109,7 @@ public class ConcertResource {
         NewCookie newCookie = makeCookie(clientId);
         String uuid = newCookie.getValue();
 
-        // Check all fields have been set
+        // Check all fields have been set for the user
         if (!DataVerifier.allFieldsAreSet(userDTO)) {
             throw new BadRequestException(Response
                     .status(Response.Status.BAD_REQUEST)
@@ -124,9 +124,8 @@ public class ConcertResource {
                     .build());
         }
 
-        User user = UserMapper.toDomain(userDTO, uuid);
-
         // Persist the new user
+        User user = UserMapper.toDomain(userDTO, uuid);
         beginTransaction();
         entityManager.persist(user);
         commitTransaction();
@@ -189,10 +188,6 @@ public class ConcertResource {
     @Path(USERS_URI + RESERVATION_URI)
     @POST
     public Response makeReservation(ReservationRequestDTO reservationRequestDTO, @CookieParam(CLIENT_COOKIE) Cookie clientId) {
-        if (newCall) {
-            logger.info("2nd makeReservation call -- DEBUGGING PURPOSES");
-        }
-        newCall = true;
         logger.info("Attempting to make reservation.");
 
         // Check all parameters have been set in the reservation request
@@ -203,7 +198,7 @@ public class ConcertResource {
                     .build());
         }
 
-        // Check request included an authentication token that's valid and retrieve the logged in user.
+        // Check request included an authentication token that's valid and retrieve the logged in user
         User user = checkAuthenticationTokenAndGetUser(clientId);
 
         // Check concert is available on that date
@@ -224,6 +219,7 @@ public class ConcertResource {
                     .build());
         }
 
+        // Check there are seats available for the concert
         // Total set of seats for the given seat type:
         PriceBand seatType = reservationRequestDTO.getSeatType();
         Set<SeatRow> rowsForSeatType = TheatreLayout.getRowsForPriceBand(seatType);
@@ -233,14 +229,15 @@ public class ConcertResource {
                         totalSeatsInGivenSeatType.add(new Seat(row, new SeatNumber(seatNumber)))
                 ));
 
-        // Set of seats that are reserved:
+        // Set of seats that are reserved or booked:
         beginTransaction();
         List<Reservation> reservations = entityManager.createQuery("SELECT r " +
                         "FROM Reservation r " +
                         "WHERE r.concert = \'" + concertId + "\' " +
                         "AND r.date = \'" + date + "\'" +
                         "AND r.seatType = \'" + seatType + "\'"
-                , Reservation.class).getResultList();
+                , Reservation.class).
+                getResultList();
         commitTransaction();
         Set<Seat> reservedSeats = new HashSet<>();
         reservations.forEach(reservation -> reservedSeats.addAll(reservation.getSeats()));
@@ -265,13 +262,14 @@ public class ConcertResource {
             requestedSeats.add(iterator.next());
         }
 
-        // Create reservation for the user
+        // Persist reservation for the user, locking the seats.
         Concert concert = concerts.get(0);
         long reservationExpiryTime = System.currentTimeMillis() + (5 * 1000);
 
         Reservation newReservation = new Reservation(concert, reservationRequestDTO.getDate(), seatType, requestedSeats, user, reservationExpiryTime);
         beginTransaction();
         entityManager.persist(newReservation);
+        requestedSeats.forEach(seat -> entityManager.lock(seat, LockModeType.OPTIMISTIC_FORCE_INCREMENT));
         commitTransaction();
 
         logger.info("Persisted new reservation: " + newReservation.toString());
@@ -353,8 +351,8 @@ public class ConcertResource {
             beginTransaction();
             Reservation reservation = entityManager.createQuery(
                     "SELECT r FROM Reservation r " +
-                    "WHERE r.user = \'" + user.getUsername() + "\' " +
-                    "AND r.id = " + reservationDTO.getId(),
+                            "WHERE r.user = \'" + user.getUsername() + "\' " +
+                            "AND r.id = " + reservationDTO.getId(),
                     Reservation.class).getSingleResult();
 
             reservation.setConfirmed(true);
@@ -362,7 +360,7 @@ public class ConcertResource {
             entityManager.merge(reservation);
             commitTransaction();
 
-        } catch (NoResultException e){
+        } catch (NoResultException e) {
             throw new BadRequestException(Response
                     .status(Response.Status.BAD_REQUEST)
                     .entity(Messages.EXPIRED_RESERVATION)

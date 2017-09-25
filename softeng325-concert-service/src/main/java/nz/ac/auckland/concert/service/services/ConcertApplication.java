@@ -46,10 +46,10 @@ public class ConcertApplication extends Application {
             entityManager = PersistenceManager.instance().createEntityManager();
             entityManager.getTransaction().begin();
 
-            removeDomainRows(Seat.class);
-            removeDomainRows(CreditCard.class);
-            removeDomainRows(Reservation.class);
-            removeDomainRows(User.class);
+            removeTuplesFromEntity(Seat.class);
+            removeTuplesFromEntity(CreditCard.class);
+            removeTuplesFromEntity(Reservation.class);
+            removeTuplesFromEntity(User.class);
 
             entityManager.flush();
             entityManager.clear();
@@ -62,7 +62,7 @@ public class ConcertApplication extends Application {
         }
     }
 
-    private void removeDomainRows(Class<?> myClass) {
+    private void removeTuplesFromEntity(Class<?> myClass) {
         List<?> toRemove = entityManager.createQuery("SELECT q FROM " + myClass.getSimpleName() + " q", myClass).getResultList();
         toRemove.forEach(entityManager::remove);
     }

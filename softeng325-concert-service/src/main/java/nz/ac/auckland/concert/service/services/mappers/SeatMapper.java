@@ -16,7 +16,7 @@ public class SeatMapper {
         );
     }
 
-    public static Set<SeatDTO> toDTOSet(Set<Seat> seats){
+    public static Set<SeatDTO> toDTOSet(Set<Seat> seats) {
         Set<SeatDTO> seatDTOs = new HashSet<>();
         seatDTOs.addAll(seats.stream().map(SeatMapper::toDTO).collect(Collectors.toSet()));
         return seatDTOs;

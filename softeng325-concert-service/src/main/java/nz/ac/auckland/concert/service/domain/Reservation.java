@@ -24,8 +24,8 @@ public class Reservation {
     @Enumerated(EnumType.STRING)
     private PriceBand seatType;
 
-    @ManyToOne(cascade = CascadeType.PERSIST) // Don't delete concerts on removal
-    @JoinColumn(nullable = false, unique = true)
+    @ManyToOne // unidirectional
+    @JoinColumn(referencedColumnName = "id", name="concert_id", nullable = false, unique = true)
     private Concert concert;
 
     private LocalDateTime date;

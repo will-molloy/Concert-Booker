@@ -48,10 +48,6 @@ public class Concert {
     )
     private Set<Performer> performers;
 
-    // Delete reservations on removal -- TODO notify users
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "concert")
-    private Set<Reservation> reservations;
-
     public Concert(String title) {
         this.title = title;
     }
@@ -133,13 +129,5 @@ public class Concert {
 
     public long getId() {
         return id;
-    }
-
-    public Set<Reservation> getReservations() {
-        return reservations;
-    }
-
-    public void setReservations(Set<Reservation> reservations) {
-        this.reservations = reservations;
     }
 }
