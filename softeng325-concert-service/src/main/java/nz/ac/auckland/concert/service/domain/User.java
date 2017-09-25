@@ -19,6 +19,7 @@ public class User {
     @Column(nullable = false)
     private String lastname;
 
+    @Column(unique = true)
     private String uuid;
 
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
