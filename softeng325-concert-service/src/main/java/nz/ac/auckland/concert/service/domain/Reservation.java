@@ -97,37 +97,31 @@ public class Reservation {
         this.confirmed = confirmed;
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (!(obj instanceof Reservation))
-            return false;
-        if (obj == this)
-            return true;
+    public long getId() {
+        return id;
+    }
 
-        Reservation rhs = (Reservation) obj;
-        return new EqualsBuilder().
-                append(concert, rhs.concert).
-                append(date, rhs.date).
-                append(user, rhs.user).
-                append(confirmed, rhs.confirmed).
-                append(seats, rhs.seats).
-                append(seatType, rhs.seatType).
-                isEquals();
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Reservation that = (Reservation) o;
+
+        if (id != that.id) return false;
+        if (confirmed != that.confirmed) return false;
+        if (seats != null ? !seats.equals(that.seats) : that.seats != null) return false;
+        if (seatType != that.seatType) return false;
+        return date != null ? date.equals(that.date) : that.date == null;
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(17, 31).
-                append(concert).
-                append(date).
-                append(user).
-                append(confirmed).
-                append(seats).
-                append(seatType).
-                hashCode();
-    }
-
-    public long getId() {
-        return id;
+        int result = (int) (id ^ (id >>> 32));
+        result = 31 * result + (seats != null ? seats.hashCode() : 0);
+        result = 31 * result + (seatType != null ? seatType.hashCode() : 0);
+        result = 31 * result + (date != null ? date.hashCode() : 0);
+        result = 31 * result + (confirmed ? 1 : 0);
+        return result;
     }
 }

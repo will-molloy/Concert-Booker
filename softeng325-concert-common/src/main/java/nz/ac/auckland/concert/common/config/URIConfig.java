@@ -13,8 +13,9 @@ public class URIConfig {
 
     public static final String USERS_URI = "/users";
 
-    public static final String LOGIN_URI = "/authenticate";
+    public static final String AUTHENTICATE_URI = "/authenticate";
 
     public static final String RESERVATION_URI = "/reserve";
 
+    public static final String PAYMENT_URI = "/payment";
 }

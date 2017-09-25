@@ -26,6 +26,10 @@ public class User {
     @Column(name = "UUID")
     private String uuid;
 
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "creditCard_id")
+    private CreditCard creditCard;
+
     // Delete reservations on removal
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER, mappedBy = "user")
     private Set<Reservation> reservations;
@@ -81,39 +85,47 @@ public class User {
         this.lastname = lastname;
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (!(obj instanceof User))
-            return false;
-        if (obj == this)
-            return true;
-
-        User rhs = (User) obj;
-        return new EqualsBuilder().
-                append(username, rhs.username).
-                append(password, rhs.password).
-                append(firstname, rhs.firstname).
-                append(lastname, rhs.lastname).
-                append(uuid, rhs.uuid).
-                isEquals();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder(17, 31).
-                append(username).
-                append(password).
-                append(firstname).
-                append(lastname).
-                append(uuid).
-                hashCode();
-    }
-
     public Set<Reservation> getReservations() {
         return reservations;
     }
 
     public void setReservations(Set<Reservation> reservations) {
         this.reservations = reservations;
+    }
+
+    public CreditCard getCreditCard() {
+        return creditCard;
+    }
+
+    public void setCreditCard(CreditCard creditCard) {
+        this.creditCard = creditCard;
+    }
+
+    public String getUuid() {
+        return uuid;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        User user = (User) o;
+
+        if (username != null ? !username.equals(user.username) : user.username != null) return false;
+        if (password != null ? !password.equals(user.password) : user.password != null) return false;
+        if (firstname != null ? !firstname.equals(user.firstname) : user.firstname != null) return false;
+        if (lastname != null ? !lastname.equals(user.lastname) : user.lastname != null) return false;
+        return uuid != null ? uuid.equals(user.uuid) : user.uuid == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = username != null ? username.hashCode() : 0;
+        result = 31 * result + (password != null ? password.hashCode() : 0);
+        result = 31 * result + (firstname != null ? firstname.hashCode() : 0);
+        result = 31 * result + (lastname != null ? lastname.hashCode() : 0);
+        result = 31 * result + (uuid != null ? uuid.hashCode() : 0);
+        return result;
     }
 }

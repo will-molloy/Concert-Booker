@@ -1,19 +1,13 @@
 package nz.ac.auckland.concert.service.services;
 
-import nz.ac.auckland.concert.common.dto.ConcertDTO;
-import nz.ac.auckland.concert.common.dto.PerformerDTO;
-import nz.ac.auckland.concert.common.dto.ReservationRequestDTO;
-import nz.ac.auckland.concert.common.dto.UserDTO;
+import nz.ac.auckland.concert.common.dto.*;
 import nz.ac.auckland.concert.common.message.Messages;
 import nz.ac.auckland.concert.common.types.PriceBand;
 import nz.ac.auckland.concert.common.types.SeatNumber;
 import nz.ac.auckland.concert.common.types.SeatRow;
 import nz.ac.auckland.concert.common.util.TheatreLayout;
 import nz.ac.auckland.concert.service.domain.*;
-import nz.ac.auckland.concert.service.services.mappers.ConcertMapper;
-import nz.ac.auckland.concert.service.services.mappers.PerformerMapper;
-import nz.ac.auckland.concert.service.services.mappers.ReservationMapper;
-import nz.ac.auckland.concert.service.services.mappers.UserMapper;
+import nz.ac.auckland.concert.service.services.mappers.*;
 import nz.ac.auckland.concert.service.services.util.DataVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -151,7 +145,7 @@ public class ConcertResource {
         return users.stream().anyMatch(user -> user.getUsername().equals(userDTO.getUsername()));
     }
 
-    @Path(USERS_URI + LOGIN_URI)
+    @Path(USERS_URI + AUTHENTICATE_URI)
     @POST
     public Response authenticateUser(UserDTO userDTO, @CookieParam(CLIENT_COOKIE) Cookie clientId) {
         logger.info("Attempting to authenticate user: " + userDTO.getUsername());
@@ -208,32 +202,8 @@ public class ConcertResource {
                     .build());
         }
 
-        // Check request included an authentication token
-        if (Objects.isNull(clientId)) {
-            throw new NotAuthorizedException(Response
-                    .status(Response.Status.UNAUTHORIZED)
-                    .entity(Messages.UNAUTHENTICATED_REQUEST)
-                    .build());
-        }
-
-        // Check user is authenticated i.e. exists in the database
-        String uuid = clientId.getValue();
-        beginTransaction();
-        List<User> users = entityManager.createQuery("SELECT u FROM User u WHERE uuid = \'" + uuid + "\'", User.class).getResultList();
-        commitTransaction();
-
-        if (users.size() > 1) {
-            throw new InternalServerErrorException(Response
-                    .status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity("Multiple users with same UUID.")
-                    .build());
-        }
-        if (users.isEmpty()) {
-            throw new NotAuthorizedException(Response
-                    .status(Response.Status.UNAUTHORIZED)
-                    .entity(Messages.BAD_AUTHENTICATON_TOKEN)
-                    .build());
-        }
+        // Check request included an authentication token that's valid and retrieve the logged in user.
+        User user = checkAuthenticationTokenAndGetUser(clientId);
 
         // Check concert is available on that date
         Timestamp date = Timestamp.valueOf(reservationRequestDTO.getDate());
@@ -252,8 +222,6 @@ public class ConcertResource {
                     .entity(Messages.CONCERT_NOT_SCHEDULED_ON_RESERVATION_DATE)
                     .build());
         }
-
-        // Check there are seats available for the requested concert, date and seat type.
 
         // Total set of seats for the given seat type:
         PriceBand seatType = reservationRequestDTO.getSeatType();
@@ -298,7 +266,6 @@ public class ConcertResource {
 
         // Create reservation for the user
         Concert concert = concerts.get(0);
-        User user = users.get(0);
 
         Reservation newReservation = new Reservation(concert, reservationRequestDTO.getDate(), seatType, requestedSeats, user);
         beginTransaction();
@@ -309,6 +276,57 @@ public class ConcertResource {
 
         return Response.created(URI.create(USERS_URI + RESERVATION_URI + "/" + newReservation.toString())) // 201 Created status
                 .entity(ReservationMapper.toDto(newReservation))
+                .cookie(makeCookie(clientId))
+                .build();
+    }
+
+    /**
+     * Ensures that an authentication token is valid: i.e. it was provided and maps to a single user
+     * in the database. Then returns that user.
+     *
+     * @throws NotAuthorizedException       if the cookie doesn't contain a UUID.
+     * @throws NotAuthorizedException       if that user isn't found in the database.
+     * @throws InternalServerErrorException if multiple users have the same authentication token.
+     */
+    private User checkAuthenticationTokenAndGetUser(Cookie cookie) throws InternalServerErrorException, NotAuthorizedException {
+        if (Objects.isNull(cookie)) {
+            throw new NotAuthorizedException(Response
+                    .status(Response.Status.UNAUTHORIZED)
+                    .entity(Messages.UNAUTHENTICATED_REQUEST)
+                    .build());
+        }
+
+        String uuid = cookie.getValue();
+        beginTransaction();
+        List<User> users = entityManager.createQuery("SELECT u FROM User u WHERE uuid = \'" + uuid + "\'", User.class).getResultList();
+        commitTransaction();
+
+        if (users.size() > 1) {
+            throw new InternalServerErrorException(Response
+                    .status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("Multiple users with same UUID.")
+                    .build());
+        }
+        if (users.isEmpty()) {
+            throw new NotAuthorizedException(Response
+                    .status(Response.Status.UNAUTHORIZED)
+                    .entity(Messages.BAD_AUTHENTICATON_TOKEN)
+                    .build());
+        }
+        return users.get(0);
+    }
+
+    @Path(USERS_URI + PAYMENT_URI)
+    @POST
+    public Response registerCreditCard(CreditCardDTO creditCardDTO, @CookieParam(CLIENT_COOKIE) Cookie clientId) {
+        User user = checkAuthenticationTokenAndGetUser(clientId);
+        CreditCard creditCard = CreditCardMapper.toDomain(creditCardDTO, user);
+
+        beginTransaction();
+        entityManager.persist(creditCard);
+        commitTransaction();
+
+        return Response.noContent() // 204 No Content status
                 .cookie(makeCookie(clientId))
                 .build();
     }

@@ -44,7 +44,7 @@ public class DefaultService implements ConcertService {
     /**
      * Resets any error message and status code and creates a new client connection.
      */
-    private void resetErrorStatusAndCreateNewClientConnection() {
+    private void createNewClientConnection() {
         client = ClientBuilder.newClient();
     }
 
@@ -102,7 +102,7 @@ public class DefaultService implements ConcertService {
     public Set<ConcertDTO> getConcerts() throws ServiceException {
         Set<ConcertDTO> concerts = null;
         try {
-            resetErrorStatusAndCreateNewClientConnection();
+            createNewClientConnection();
 
             Builder builder = client.target(WEB_SERVICE_URI + CONCERTS_URI)
                     .request()
@@ -130,7 +130,7 @@ public class DefaultService implements ConcertService {
     public Set<PerformerDTO> getPerformers() throws ServiceException {
         Set<PerformerDTO> performers = null;
         try {
-            resetErrorStatusAndCreateNewClientConnection();
+            createNewClientConnection();
 
             Builder builder = client.target(WEB_SERVICE_URI + PERFORMERS_URI)
                     .request()
@@ -158,7 +158,7 @@ public class DefaultService implements ConcertService {
     public UserDTO createUser(UserDTO newUser) throws ServiceException {
         UserDTO userDTO = null;
         try {
-            resetErrorStatusAndCreateNewClientConnection();
+            createNewClientConnection();
 
             Builder builder = client.target(WEB_SERVICE_URI + USERS_URI)
                     .request();
@@ -184,9 +184,9 @@ public class DefaultService implements ConcertService {
     public UserDTO authenticateUser(UserDTO user) throws ServiceException {
         UserDTO authenticatedUser = null;
         try {
-            resetErrorStatusAndCreateNewClientConnection();
+            createNewClientConnection();
 
-            Builder builder = client.target(WEB_SERVICE_URI + USERS_URI + LOGIN_URI)
+            Builder builder = client.target(WEB_SERVICE_URI + USERS_URI + AUTHENTICATE_URI)
                     .request()
                     .accept(MediaType.APPLICATION_XML);
 
@@ -262,7 +262,7 @@ public class DefaultService implements ConcertService {
     public ReservationDTO reserveSeats(ReservationRequestDTO reservationRequest) throws ServiceException {
         ReservationDTO reservation = null;
         try {
-            resetErrorStatusAndCreateNewClientConnection();
+            createNewClientConnection();
 
             Builder builder = client.target(WEB_SERVICE_URI + USERS_URI + RESERVATION_URI)
                     .request()
@@ -288,10 +288,24 @@ public class DefaultService implements ConcertService {
 
     }
 
+    /**
+     * @see ConcertService#registerCreditCard(CreditCardDTO)
+     */
     @Override
     public void registerCreditCard(CreditCardDTO creditCard) throws ServiceException {
-        // TODO Auto-generated method stub
+        try {
+            createNewClientConnection();
+            Builder builder = client.target(WEB_SERVICE_URI + USERS_URI + PAYMENT_URI)
+                    .request();
 
+            addCookieToInvocation(builder);
+            response = builder.post(Entity.entity(creditCard, MediaType.APPLICATION_XML));
+
+        } catch (Exception e) {
+            throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
+        } finally {
+            processCookieThenCheckResponseStatusAndCloseClientConnection();
+        }
     }
 
     @Override

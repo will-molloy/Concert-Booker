@@ -26,6 +26,9 @@ public class ConcertApplication extends Application {
     // This property is used by class ConcertServiceTest.
     public static final int RESERVATION_EXPIRY_TIME_IN_SECONDS = 5;
 
+    private EntityManager entityManager = null;
+
+
     private Set<Object> _singletons = new HashSet<>();
     private Set<Class<?>> _classes = new HashSet<>();
 
@@ -37,16 +40,12 @@ public class ConcertApplication extends Application {
     }
 
     private void initialiseDataBase() {
-        EntityManager entityManager = null;
         try {
             entityManager = PersistenceManager.instance().createEntityManager();
             entityManager.getTransaction().begin();
 
-            List<Reservation> reservations = entityManager.createQuery("SELECT r FROM Reservation r", Reservation.class).getResultList();
-            reservations.forEach(entityManager::remove);
-
-            List<User> users = entityManager.createQuery("SELECT u FROM User u", User.class).getResultList();
-            users.forEach(entityManager::remove);
+            removeDomain(Reservation.class);
+            removeDomain(User.class);
 
             entityManager.flush();
             entityManager.clear();
@@ -57,6 +56,11 @@ public class ConcertApplication extends Application {
                 entityManager.close();
             }
         }
+    }
+
+    private void removeDomain(Class<?> myClass) {
+        List<?> toRemove = entityManager.createQuery("SELECT q FROM " + myClass.getSimpleName() + " q", myClass).getResultList();
+        toRemove.forEach(entityManager::remove);
     }
 
     @Override

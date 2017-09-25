@@ -48,7 +48,7 @@ public class Concert {
     )
     private Set<Performer> performers;
 
-    // Delete reservations on removal -- TODO notify users?
+    // Delete reservations on removal -- TODO notify users
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "concert")
     private Set<Reservation> reservations;
 

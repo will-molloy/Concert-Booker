@@ -25,7 +25,6 @@ public class CreditCardDTO {
     @XmlElement(name = "type")
     private Type _type;
 
-    ;
     @XmlElement(name = "name")
     private String _name;
     @XmlElement(name = "number")
