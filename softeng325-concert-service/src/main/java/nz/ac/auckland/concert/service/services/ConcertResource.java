@@ -34,6 +34,8 @@ import static nz.ac.auckland.concert.common.config.URIConfig.*;
  * Defines a REST interface.
  * Supports the following HTTP messages:
  *
+ *
+ * //TODO documentation
  * @author Will Molloy
  * @GET
  * @POST

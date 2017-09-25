@@ -49,49 +49,12 @@ public class DefaultService implements ConcertService {
     }
 
     /**
-     * Processes the client cookie,
-     * then checks the response for error,
-     * then closes both connections.
-     */
-    private void processCookieThenCheckResponseStatusAndCloseClientConnection() throws ServiceException {
-        processCookieFromResponse(response);
-        checkResponseStatusCodeForError();
-        client.close();
-        response.close();
-    }
-
-    private void checkResponseStatusCodeForError() throws ServiceException {
-        switch (response.getStatus()) {
-            case 400: // BAD_REQUEST
-            case 401: // UNAUTHORIZED
-            case 404: // NOT_FOUND
-            case 500: // INTERNAL_SERVER_ERROR
-                throw new ServiceException(response.readEntity(String.class));
-        }
-    }
-
-    /**
      * If one exists, adds the previous cookie returned from the Web service to an
      * Invocation.Builder instance.
      */
     private void addCookieToInvocation(Builder builder) {
         if (!cookieValues.isEmpty()) {
             builder.cookie(CLIENT_COOKIE, cookieValues.iterator().next());
-        }
-    }
-
-    /**
-     * Method to extract any cookie from a Response object received from the
-     * Web service. If there is a cookie named clientId (Config.CLIENT_COOKIE)
-     * it is added to the _cookieValues set, which stores all cookie values for
-     * clientId received by the Web service.
-     */
-    private void processCookieFromResponse(Response response) {
-        Map<String, NewCookie> cookies = response.getCookies();
-
-        if (cookies.containsKey(CLIENT_COOKIE)) {
-            String cookieValue = cookies.get(CLIENT_COOKIE).getValue();
-            cookieValues.add(cookieValue);
         }
     }
 
@@ -121,6 +84,43 @@ public class DefaultService implements ConcertService {
             processCookieThenCheckResponseStatusAndCloseClientConnection();
         }
         return concerts;
+    }
+
+    /**
+     * Processes the client cookie,
+     * then checks the response for error,
+     * then closes both connections.
+     */
+    private void processCookieThenCheckResponseStatusAndCloseClientConnection() throws ServiceException {
+        processCookieFromResponse(response);
+        checkResponseStatusCodeForError();
+        client.close();
+        response.close();
+    }
+
+    /**
+     * Method to extract any cookie from a Response object received from the
+     * Web service. If there is a cookie named clientId (Config.CLIENT_COOKIE)
+     * it is added to the _cookieValues set, which stores all cookie values for
+     * clientId received by the Web service.
+     */
+    private void processCookieFromResponse(Response response) {
+        Map<String, NewCookie> cookies = response.getCookies();
+
+        if (cookies.containsKey(CLIENT_COOKIE)) {
+            String cookieValue = cookies.get(CLIENT_COOKIE).getValue();
+            cookieValues.add(cookieValue);
+        }
+    }
+
+    private void checkResponseStatusCodeForError() throws ServiceException {
+        switch (response.getStatus()) {
+            case 400: // BAD_REQUEST
+            case 401: // UNAUTHORIZED
+            case 404: // NOT_FOUND
+            case 500: // INTERNAL_SERVER_ERROR
+                throw new ServiceException(response.readEntity(String.class));
+        }
     }
 
     /**
