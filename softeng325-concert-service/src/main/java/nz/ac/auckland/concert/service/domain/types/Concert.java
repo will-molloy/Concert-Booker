@@ -46,6 +46,18 @@ public class Concert {
     )
     private Set<Performer> performers;
 
+    // Delete reservations on removal
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "user")
+    private Set<Reservation> reservations;
+
+    public void addReservation(Reservation reservation){
+        reservations.add(reservation);
+    }
+
+    public void removeReservation(Reservation reservation){
+        reservations.remove(reservation);
+    }
+
     public Concert(String title) {
         this.title = title;
     }

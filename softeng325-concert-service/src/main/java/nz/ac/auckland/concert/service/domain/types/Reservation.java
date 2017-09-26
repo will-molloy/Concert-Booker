@@ -22,15 +22,15 @@ public class Reservation {
     @Column(nullable = false)
     private PriceBand seatType;
 
-    @ManyToOne // unidirectional
-    @JoinColumn(referencedColumnName = "id", nullable = false, unique = true)
+    @ManyToOne(cascade = CascadeType.PERSIST) // Don't delete the concert on removal
+    @JoinColumn(referencedColumnName = "id", nullable = false)
     private Concert concert;
 
     @Column(nullable = false)
     private LocalDateTime date;
 
-    @ManyToOne(cascade = CascadeType.PERSIST) // Don't delete users on removal
-    @JoinColumn(nullable = false, unique = true)
+    @ManyToOne(cascade = CascadeType.PERSIST) // Don't delete the user on removal
+    @JoinColumn(nullable = false)
     private User user;
 
     @Column(nullable = false)
@@ -50,6 +50,8 @@ public class Reservation {
         this.user = user;
         this.expiryTime = expiryTime;
 
+        concert.addReservation(this);
+        user.addReservation(this);
         seats.forEach(seat -> seat.setReservation(this));
     }
 
