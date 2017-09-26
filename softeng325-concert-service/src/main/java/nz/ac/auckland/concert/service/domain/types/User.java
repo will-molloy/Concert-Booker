@@ -1,6 +1,7 @@
 package nz.ac.auckland.concert.service.domain.types;
 
 import javax.persistence.*;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -27,7 +28,7 @@ public class User {
 
     // Delete reservations on removal
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "user")
-    private Set<Reservation> reservations;
+    private Set<Reservation> reservations = new HashSet<>();
 
     public User(String username, String password, String lastname, String firstname, String uuid) {
         this.username = username;

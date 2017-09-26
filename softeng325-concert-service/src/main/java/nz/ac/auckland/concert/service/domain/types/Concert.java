@@ -11,14 +11,14 @@ import java.util.*;
 @Table(name = "CONCERTS")
 public class Concert {
 
-//    @Version
-//    @Column(name = "lock", columnDefinition = "int DEFAULT 0", nullable = false)
-//    private long version = 0L;
-
     @Id
     @GeneratedValue
     @Column(nullable = false, unique = true)
     private long id;
+
+    @Version
+    @Column(nullable = false, name = "opt_lock")
+    private long version = 0L;
 
     @Column(nullable = false)
     private String title;
@@ -52,7 +52,7 @@ public class Concert {
 
     // Delete reservations on removal
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "user")
-    private Set<Reservation> reservations;
+    private Set<Reservation> reservations = new HashSet<>();
 
     public void addReservation(Reservation reservation){
         reservations.add(reservation);
@@ -131,7 +131,8 @@ public class Concert {
         if (id != concert.id) return false;
         if (title != null ? !title.equals(concert.title) : concert.title != null) return false;
         if (dates != null ? !dates.equals(concert.dates) : concert.dates != null) return false;
-        return tariff != null ? tariff.equals(concert.tariff) : concert.tariff == null;
+        if (tariff != null ? !tariff.equals(concert.tariff) : concert.tariff != null) return false;
+        return (performers != null ? !performers.equals(concert.performers) : concert.performers != null);
     }
 
     @Override
@@ -140,6 +141,7 @@ public class Concert {
         result = 31 * result + (title != null ? title.hashCode() : 0);
         result = 31 * result + (dates != null ? dates.hashCode() : 0);
         result = 31 * result + (tariff != null ? tariff.hashCode() : 0);
+        result = 31 * result + (performers != null ? performers.hashCode() : 0);
         return result;
     }
 }

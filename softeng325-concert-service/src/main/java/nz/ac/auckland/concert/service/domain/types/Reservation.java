@@ -23,7 +23,7 @@ public class Reservation {
     private PriceBand seatType;
 
     @ManyToOne(cascade = CascadeType.PERSIST) // Don't delete the concert on removal
-    @JoinColumn(referencedColumnName = "id", nullable = false)
+    @JoinColumn(nullable = false)
     private Concert concert;
 
     @Column(nullable = false)
