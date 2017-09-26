@@ -271,7 +271,6 @@ public class ConcertResource {
         Reservation newReservation = new Reservation(concert, reservationRequestDTO.getDate(), seatType, requestedSeats, user, reservationExpiryTime);
         beginTransaction();
         entityManager.persist(newReservation);
-        requestedSeats.forEach(seat -> entityManager.lock(seat, LockModeType.OPTIMISTIC_FORCE_INCREMENT));
         commitTransaction();
 
         logger.info("Persisted new reservation: " + newReservation.toString());

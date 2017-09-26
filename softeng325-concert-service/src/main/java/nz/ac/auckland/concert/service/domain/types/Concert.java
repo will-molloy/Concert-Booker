@@ -11,6 +11,10 @@ import java.util.*;
 @Table(name = "CONCERTS")
 public class Concert {
 
+//    @Version
+//    @Column(name = "lock", columnDefinition = "int DEFAULT 0", nullable = false)
+//    private long version = 0L;
+
     @Id
     @GeneratedValue
     @Column(nullable = false, unique = true)

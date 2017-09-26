@@ -7,12 +7,7 @@ import nz.ac.auckland.concert.service.domain.jpa.SeatNumberConverter;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "reserved_seat")
 public class Seat {
-
-    @Version
-    @Column(name = "lock", columnDefinition = "int DEFAULT 0", nullable = false)
-    private long version = 0L;
 
     @Id
     @GeneratedValue
@@ -63,14 +58,6 @@ public class Seat {
 
     public void setReservation(Reservation reservation) {
         this.reservation = reservation;
-    }
-
-    public long getVersion() {
-        return version;
-    }
-
-    protected void setVersion(long version) {
-        this.version = version;
     }
 
     @Override
