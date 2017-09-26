@@ -13,8 +13,7 @@ import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -67,6 +66,19 @@ public class ConcertSubscriptionResource {
     public void subscribe(final @Suspended AsyncResponse response) {
         logger.info("New subscriber.");
         responses.add(response);
+
+        // If this is a returning response fill it in with the items it missed
+        if (pausedResponses.containsKey(response)){
+            beginTransaction();
+            List<NewsItem> oldNewsItems = entityManager.createQuery("SELECT n FROM NewsItem", NewsItem.class).getResultList();
+            LocalDateTime cancelDate = pausedResponses.get(response);
+            for (NewsItem newsItem : oldNewsItems){
+                if (cancelDate.isBefore(newsItem.get_timestamp())){
+                    response.resume(NewsItemMapper.toDTO(newsItem));
+                }
+            }
+            commitTransaction();
+        }
     }
 
     @POST
@@ -83,6 +95,21 @@ public class ConcertSubscriptionResource {
             responses.clear();
         });
     }
+
+    @PUT
+    public void cancel(final String message) {
+        logger.info("Cancelling subscriber.");
+
+
+
+//        pausedResponses.put(response, LocalDateTime.now());
+//
+//        responses.remove(response);
+//        response.cancel();
+    }
+
+    private Map<AsyncResponse, LocalDateTime> pausedResponses = new HashMap<>();
+
 
 
 }

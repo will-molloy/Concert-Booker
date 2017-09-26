@@ -13,6 +13,7 @@ import nz.ac.auckland.concert.common.message.Messages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.CookieParam;
 import javax.ws.rs.client.*;
 import javax.ws.rs.client.Invocation.Builder;
 import javax.ws.rs.core.GenericType;
@@ -43,6 +44,7 @@ public class DefaultService implements ConcertService {
 
     private Client client;
     private Response response;
+    private NewsItemCallBack newsItemCallBack;
 
     /**
      * Resets any error message and status code and creates a new client connection.
@@ -355,22 +357,11 @@ public class DefaultService implements ConcertService {
         try {
             createNewClientConnection();
             final WebTarget target = client.target(WEB_SERVICE_URI + NEWS_ITEM_URI);
-
+            
+            newsItemCallBack = new NewsItemCallBack(listener, target);
             target.request()
                     .async()
-                    .get(new InvocationCallback<NewsItemDTO>() {
-                        @Override
-                        public void completed(NewsItemDTO newsItem) {
-                            logger.info("Received item: " + newsItem.getContent());
-                            listener.newsItemReceived(newsItem);
-                            target.request().async().get(this);
-                        }
-
-                        @Override
-                        public void failed(Throwable throwable) {
-                            throwable.printStackTrace();
-                        }
-                    });
+                    .get(newsItemCallBack);
         } catch (Exception e) {
             throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
         }
@@ -379,8 +370,7 @@ public class DefaultService implements ConcertService {
     @Override
     public void cancelSubscription() {
         logger.info("Cancelling subscription.");
-        final WebTarget target = client.target(WEB_SERVICE_URI + NEWS_ITEM_URI);
-        target.request().async().get().cancel(true);
+        Response r2 = client.target(WEB_SERVICE_URI + NEWS_ITEM_URI).request().put(Entity.entity("hi", MediaType.TEXT_PLAIN));
     }
 }
 

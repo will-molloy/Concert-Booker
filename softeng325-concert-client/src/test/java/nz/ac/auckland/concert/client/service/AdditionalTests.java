@@ -62,6 +62,11 @@ public class AdditionalTests {
         _service = new DefaultService();
     }
 
+    @After
+    public void stopServer() throws Exception {
+  //      _server.stop();
+    }
+
     @Test
     public void testPublish() throws InterruptedException {
         MockItemListener listener = new MockItemListener() {
@@ -94,26 +99,28 @@ public class AdditionalTests {
                 incrementExecution();
             }
         };
-        //Subscribe and get 1 response.
+        //Subscribe and get 1 response.???? 0 ????
         _service.subscribeForNewsItems(listener);
+        Thread.sleep(3000);
         _service.cancelSubscription();
-        Thread.sleep(200);
+        Thread.sleep(3000);
         Invocation.Builder b = _client.target(WEB_SERVICE_URI + NEWS_ITEM_URI).request();
         Response r = b.post(Entity.entity("hi", MediaType.TEXT_PLAIN));
-        Thread.sleep(200);
+        Thread.sleep(3000);
         //Blackout period
         Invocation.Builder b2 = _client.target(WEB_SERVICE_URI + NEWS_ITEM_URI).request();
         Response r2 = b2.post(Entity.entity("hi", MediaType.TEXT_PLAIN));
         //Resubscribe and get back messages missed since last subscribe
         _service.subscribeForNewsItems(listener);
+        Thread.sleep(3000);
         _service.cancelSubscription();
-        Thread.sleep(200);
+        Thread.sleep(3000);
         Response r3 = b2.post(Entity.entity("hi", MediaType.TEXT_PLAIN));
         r.close();
         r2.close();
         r3.close();
-        Thread.sleep(300);
-        assertEquals(3, listener.getExecutedTimes());
+        Thread.sleep(1000);
+        assertEquals(3, listener.getExecutedTimes()); // 2??
     }
 
     abstract class MockItemListener implements ConcertService.NewsItemListener {
