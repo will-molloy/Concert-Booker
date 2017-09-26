@@ -23,10 +23,10 @@ public class NewsItemDTO {
     @XmlAttribute(name = "id")
     private Long _id;
 
-    @XmlElement(name = "last-name")
+    @XmlElement(name = "time-stamp")
     private LocalDateTime _timestamp;
 
-    @XmlElement(name = "last-name")
+    @XmlElement(name = "content")
     private String _content;
 
     public NewsItemDTO() {

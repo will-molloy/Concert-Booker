@@ -10,7 +10,6 @@ import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import nz.ac.auckland.concert.common.dto.*;
 import nz.ac.auckland.concert.common.message.Messages;
-import nz.ac.auckland.concert.service.services.ConcertSubscriptionResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -357,39 +356,32 @@ public class DefaultService implements ConcertService {
             createNewClientConnection();
             final WebTarget target = client.target(WEB_SERVICE_URI + NEWS_ITEM_URI);
 
-            target.request().async().get(new InvocationCallback<String>(){
+            target.request()
+                    .async()
+                    .get(new InvocationCallback<NewsItemDTO>() {
+                        @Override
+                        public void completed(NewsItemDTO newsItem) {
+                            logger.info("Received item: " + newsItem.getContent());
+                            listener.newsItemReceived(newsItem);
+                            target.request().async().get(this);
+                        }
 
-                @Override
-                public void completed(String s) {
-                    logger.info("Received msg: " + s);
-                    target.request().async().get(this);
-                }
-
-                @Override
-                public void failed(Throwable throwable) {
-
-                }
-            });
+                        @Override
+                        public void failed(Throwable throwable) {
+                            throwable.printStackTrace();
+                        }
+                    });
         } catch (Exception e) {
             throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
-        } finally {
-           // processCookieThenCheckResponseStatusAndCloseClientConnection();
         }
     }
 
     @Override
     public void cancelSubscription() {
-        try {
-            createNewClientConnection();
-            Builder builder = client.target(WEB_SERVICE_URI + NEWS_ITEM_URI)
-                    .request();
-            addCookieToInvocation(builder);
-            response = builder.delete();
-        } catch (Exception e) {
-            throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
-        } finally {
-            processCookieThenCheckResponseStatusAndCloseClientConnection();
-        }
+        logger.info("Cancelling subscription.");
+        final WebTarget target = client.target(WEB_SERVICE_URI + NEWS_ITEM_URI);
+        target.request().async().get().cancel(true);
     }
-
 }
+
+

@@ -47,7 +47,6 @@ public class ConcertServiceTest {
             .getLogger(ConcertServiceTest.class);
     private static Client _client;
     private static Server _server;
-
     private ConcertService _service;
 
     @BeforeClass

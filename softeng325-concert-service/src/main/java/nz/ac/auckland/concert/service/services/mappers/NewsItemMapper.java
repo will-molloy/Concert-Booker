@@ -5,14 +5,7 @@ import nz.ac.auckland.concert.service.domain.types.NewsItem;
 
 public class NewsItemMapper {
 
-    public NewsItem toDomain(NewsItemDTO newsItemDTO){
-        return new NewsItem(
-                newsItemDTO.getTimetamp(),
-                newsItemDTO.getContent()
-        );
-    }
-
-    public NewsItemDTO toDTO(NewsItem newsItem){
+    public static NewsItemDTO toDTO(NewsItem newsItem){
         return new NewsItemDTO(
                 newsItem.getId(),
                 newsItem.get_timestamp(),
