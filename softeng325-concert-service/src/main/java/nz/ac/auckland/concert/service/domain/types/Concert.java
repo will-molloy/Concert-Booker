@@ -50,20 +50,20 @@ public class Concert {
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "user")
     private Set<Reservation> reservations = new HashSet<>();
 
-    public void addReservation(Reservation reservation){
-        reservations.add(reservation);
-    }
-
-    public void removeReservation(Reservation reservation){
-        reservations.remove(reservation);
-    }
-
     public Concert(String title) {
         this.title = title;
     }
 
     protected Concert() {
     } // required for JPA
+
+    public void addReservation(Reservation reservation) {
+        reservations.add(reservation);
+    }
+
+    public void removeReservation(Reservation reservation) {
+        reservations.remove(reservation);
+    }
 
     public String getTitle() {
         return title;

@@ -14,10 +14,9 @@ import javax.persistence.LockModeType;
 import javax.persistence.NoResultException;
 import javax.persistence.OptimisticLockException;
 import javax.ws.rs.*;
-import javax.ws.rs.core.Cookie;
-import javax.ws.rs.core.GenericEntity;
-import javax.ws.rs.core.NewCookie;
-import javax.ws.rs.core.Response;
+import javax.ws.rs.container.AsyncResponse;
+import javax.ws.rs.container.Suspended;
+import javax.ws.rs.core.*;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -32,9 +31,10 @@ import static nz.ac.auckland.concert.service.services.ConcertApplication.RESERVA
  * JAX-RS Resource class for the Concert Web service.
  * Defines a REST interface.
  * Supports the following HTTP messages:
- *
- *
+ * <p>
+ * <p>
  * //TODO documentation
+ *
  * @author Will Molloy
  * @GET
  * @POST
@@ -218,7 +218,7 @@ public class ConcertResource {
             List<Concert> concerts = entityManager.createQuery("SELECT c " +
                             "FROM Concert c JOIN c.dates d " +
                             "WHERE c.id = :concertId "
-                            +"AND d = :date"
+                            + "AND d = :date"
                     , Concert.class)
                     .setParameter("concertId", concertId)
                     .setParameter("date", dateTime)
@@ -239,8 +239,8 @@ public class ConcertResource {
                     "SELECT s " +
                             "FROM Seat s " +
                             "WHERE s.concertDate = :date "
-                            +"AND s.seatType = :seatType "
-                            +"AND s.reservation IS NULL"
+                            + "AND s.seatType = :seatType "
+                            + "AND s.reservation IS NULL"
                     , Seat.class)
                     .setLockMode(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
                     .setMaxResults(numRequiredSeats)
@@ -259,7 +259,7 @@ public class ConcertResource {
 
         } catch (NoResultException e) {
             throwInsufficientSeatsException();
-        } catch (OptimisticLockException e){
+        } catch (OptimisticLockException e) {
             throw new WebApplicationException(Response.
                     status(Response.Status.PRECONDITION_FAILED)
                     .entity(RESOURCE_MODIFICATION_ERROR)
@@ -276,8 +276,8 @@ public class ConcertResource {
 
     private void removeExpiredReservations() {
         List<Reservation> expiredReservations = entityManager.createQuery("SELECT r " +
-                "FROM Reservation r " +
-                "WHERE r.expiryTime < :currentTime"
+                        "FROM Reservation r " +
+                        "WHERE r.expiryTime < :currentTime"
                 , Reservation.class)
                 .setParameter("currentTime", System.currentTimeMillis())
                 .getResultList();
@@ -286,7 +286,7 @@ public class ConcertResource {
         logger.info("Removed: " + size + " expired reservation(s).");
     }
 
-    private void throwInsufficientSeatsException() throws BadRequestException{
+    private void throwInsufficientSeatsException() throws BadRequestException {
         throw new BadRequestException(Response
                 .status(Response.Status.BAD_REQUEST)
                 .entity(Messages.INSUFFICIENT_SEATS_AVAILABLE_FOR_RESERVATION)
@@ -360,7 +360,7 @@ public class ConcertResource {
                     "SELECT r FROM Reservation r " +
                             "WHERE r.user = :user " +
                             "AND r.id = :reservationId"
-                    ,Reservation.class)
+                    , Reservation.class)
                     .setParameter("user", user)
                     .setParameter("reservationId", reservationDTO.getId())
                     .setLockMode(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
@@ -405,9 +405,9 @@ public class ConcertResource {
 
         List<Reservation> reservations = entityManager.createQuery(
                 "SELECT r " +
-                "FROM Reservation r " +
-                "WHERE r.user = :user " +
-                "AND r.confirmed = true"
+                        "FROM Reservation r " +
+                        "WHERE r.user = :user " +
+                        "AND r.confirmed = true"
                 , Reservation.class)
                 .setParameter("user", user)
                 .getResultList();
@@ -447,5 +447,4 @@ public class ConcertResource {
         }
         return newCookie;
     }
-
 }

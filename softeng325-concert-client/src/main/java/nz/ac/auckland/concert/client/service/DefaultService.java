@@ -10,10 +10,11 @@ import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import nz.ac.auckland.concert.common.dto.*;
 import nz.ac.auckland.concert.common.message.Messages;
+import nz.ac.auckland.concert.service.services.ConcertSubscriptionResource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.*;
 import javax.ws.rs.client.Invocation.Builder;
 import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
@@ -29,6 +30,9 @@ import static nz.ac.auckland.concert.common.config.CookieConfig.CLIENT_COOKIE;
 import static nz.ac.auckland.concert.common.config.URIConfig.*;
 
 public class DefaultService implements ConcertService {
+
+    private static Logger logger = LoggerFactory
+            .getLogger(DefaultService.class);
 
     // AWS S3 access credentials for concert images.
     private static final String AWS_ACCESS_KEY_ID = "AKIAIDYKYWWUZ65WGNJA";
@@ -349,12 +353,40 @@ public class DefaultService implements ConcertService {
 
     @Override
     public void subscribeForNewsItems(NewsItemListener listener) {
-        throw new UnsupportedOperationException();
+        try {
+            createNewClientConnection();
+            final WebTarget target = client.target(WEB_SERVICE_URI + NEWS_ITEM_URI);
+
+            target.request().async().get(new InvocationCallback<String>(){
+
+                @Override
+                public void completed(String s) {
+                    logger.info("Received msg: " + s);
+                    target.request().async().get(this);
+                }
+
+                @Override
+                public void failed(Throwable throwable) {}
+            });
+        } catch (Exception e) {
+            throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
+        } finally {
+         //   processCookieThenCheckResponseStatusAndCloseClientConnection();
+        }
     }
 
     @Override
     public void cancelSubscription() {
-        throw new UnsupportedOperationException();
+        try {
+            createNewClientConnection();
+            Builder builder = client.target(WEB_SERVICE_URI + NEWS_ITEM_URI)
+                    .request();
+            response = builder.delete();
+        } catch (Exception e) {
+            throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
+        } finally {
+         //   processCookieThenCheckResponseStatusAndCloseClientConnection();
+        }
     }
 
 }

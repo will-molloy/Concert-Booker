@@ -218,13 +218,13 @@ public interface ConcertService {
 
     /**
      * Subscribes for news items. Once subscribed, the supplied
-     * NewsItemListener will be notified of any news items. The listener is
+     * NewsItemListenerService will be notified of any news items. The listener is
      * repeatedly notified in a background thread of new news items until the
      * subscription is cancelled.
      * <p>
      * This is an optional method.
      *
-     * @param listener the NewsItemListener that is notified of new items.
+     * @param listener the NewsItemListenerService that is notified of new items.
      * @throws ServiceException              if there is a communication error. In this case
      *                                       the exception's message is Messages.COMMUNICATION_ERROR.
      * @throws UnsupportedOperationException if the method isn't implemented.
@@ -245,7 +245,7 @@ public interface ConcertService {
 
     /**
      * Interface to be implemented by clients that are interested in receiving
-     * news items. A NewsItemListener is expected to process the incoming new
+     * news items. A NewsItemListenerService is expected to process the incoming new
      * item.
      */
     interface NewsItemListener {

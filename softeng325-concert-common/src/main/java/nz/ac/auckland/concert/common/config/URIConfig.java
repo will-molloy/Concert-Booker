@@ -15,9 +15,11 @@ public class URIConfig {
 
     public static final String AUTHENTICATE_URI = "/authenticate";
 
-    public static final String RESERVATION_URI = "/reservation";
+    public static final String RESERVATION_URI = "/reserve";
 
     public static final String PAYMENT_URI = "/payment";
 
     public static final String CONFIRM_URI = "/confirm";
+
+    public static final String NEWS_ITEM_URI = "/news-item";
 }

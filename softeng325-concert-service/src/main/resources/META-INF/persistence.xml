@@ -29,6 +29,7 @@
         <class>nz.ac.auckland.concert.service.domain.types.Seat</class>
         <class>nz.ac.auckland.concert.service.domain.types.Reservation</class>
         <class>nz.ac.auckland.concert.service.domain.types.CreditCard</class>
+        <class>nz.ac.auckland.concert.service.domain.types.NewsItem</class>
         <properties>
             <!--  Configure the data source. In this case the embedded H2 database
                   is used. -->
