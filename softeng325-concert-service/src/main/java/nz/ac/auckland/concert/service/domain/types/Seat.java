@@ -1,4 +1,4 @@
-package nz.ac.auckland.concert.service.domain;
+package nz.ac.auckland.concert.service.domain.types;
 
 import nz.ac.auckland.concert.common.types.SeatNumber;
 import nz.ac.auckland.concert.common.types.SeatRow;

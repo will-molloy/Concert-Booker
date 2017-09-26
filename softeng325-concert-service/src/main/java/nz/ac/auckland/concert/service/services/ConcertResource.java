@@ -6,7 +6,7 @@ import nz.ac.auckland.concert.common.types.PriceBand;
 import nz.ac.auckland.concert.common.types.SeatNumber;
 import nz.ac.auckland.concert.common.types.SeatRow;
 import nz.ac.auckland.concert.common.util.TheatreLayout;
-import nz.ac.auckland.concert.service.domain.*;
+import nz.ac.auckland.concert.service.domain.types.*;
 import nz.ac.auckland.concert.service.services.mappers.*;
 import nz.ac.auckland.concert.service.services.util.DataVerifier;
 import org.slf4j.Logger;

@@ -1,13 +1,10 @@
-package nz.ac.auckland.concert.service.domain;
+package nz.ac.auckland.concert.service.domain.types;
 
 import nz.ac.auckland.concert.common.types.PriceBand;
-import org.hibernate.annotations.Cascade;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Set;
-
-import static org.hibernate.annotations.CascadeType.ALL;
 
 @Entity
 public class Reservation {

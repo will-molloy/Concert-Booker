@@ -1,4 +1,4 @@
-package nz.ac.auckland.concert.service.domain;
+package nz.ac.auckland.concert.service.domain.types;
 
 import javax.persistence.*;
 import java.util.Set;

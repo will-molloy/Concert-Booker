@@ -1,7 +1,7 @@
 package nz.ac.auckland.concert.service.services.mappers;
 
 import nz.ac.auckland.concert.common.dto.SeatDTO;
-import nz.ac.auckland.concert.service.domain.Seat;
+import nz.ac.auckland.concert.service.domain.types.Seat;
 
 import java.util.HashSet;
 import java.util.Set;

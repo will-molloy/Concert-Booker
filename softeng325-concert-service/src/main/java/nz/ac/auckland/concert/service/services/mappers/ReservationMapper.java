@@ -3,7 +3,7 @@ package nz.ac.auckland.concert.service.services.mappers;
 import nz.ac.auckland.concert.common.dto.BookingDTO;
 import nz.ac.auckland.concert.common.dto.ReservationDTO;
 import nz.ac.auckland.concert.common.dto.ReservationRequestDTO;
-import nz.ac.auckland.concert.service.domain.Reservation;
+import nz.ac.auckland.concert.service.domain.types.Reservation;
 
 public class ReservationMapper {
 

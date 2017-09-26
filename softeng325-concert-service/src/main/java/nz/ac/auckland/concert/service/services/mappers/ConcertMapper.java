@@ -1,8 +1,8 @@
 package nz.ac.auckland.concert.service.services.mappers;
 
 import nz.ac.auckland.concert.common.dto.ConcertDTO;
-import nz.ac.auckland.concert.service.domain.Concert;
-import nz.ac.auckland.concert.service.domain.Performer;
+import nz.ac.auckland.concert.service.domain.types.Concert;
+import nz.ac.auckland.concert.service.domain.types.Performer;
 
 import java.util.stream.Collectors;
 

@@ -1,4 +1,4 @@
-package nz.ac.auckland.concert.service.domain;
+package nz.ac.auckland.concert.service.domain.types;
 
 import nz.ac.auckland.concert.common.types.Genre;
 import org.apache.commons.lang3.builder.EqualsBuilder;

@@ -1,8 +1,6 @@
-package nz.ac.auckland.concert.service.domain;
+package nz.ac.auckland.concert.service.domain.types;
 
 import nz.ac.auckland.concert.common.types.PriceBand;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import javax.persistence.*;
 import java.math.BigDecimal;

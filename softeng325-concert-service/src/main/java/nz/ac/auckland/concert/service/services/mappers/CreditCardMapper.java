@@ -1,8 +1,8 @@
 package nz.ac.auckland.concert.service.services.mappers;
 
 import nz.ac.auckland.concert.common.dto.CreditCardDTO;
-import nz.ac.auckland.concert.service.domain.CreditCard;
-import nz.ac.auckland.concert.service.domain.User;
+import nz.ac.auckland.concert.service.domain.types.CreditCard;
+import nz.ac.auckland.concert.service.domain.types.User;
 
 public class CreditCardMapper {
 
