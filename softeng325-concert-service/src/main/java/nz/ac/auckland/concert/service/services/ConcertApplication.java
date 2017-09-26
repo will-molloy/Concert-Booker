@@ -1,16 +1,21 @@
 package nz.ac.auckland.concert.service.services;
 
-import nz.ac.auckland.concert.service.domain.types.CreditCard;
-import nz.ac.auckland.concert.service.domain.types.Reservation;
-import nz.ac.auckland.concert.service.domain.types.Seat;
-import nz.ac.auckland.concert.service.domain.types.User;
+import nz.ac.auckland.concert.common.types.PriceBand;
+import nz.ac.auckland.concert.common.types.SeatNumber;
+import nz.ac.auckland.concert.common.types.SeatRow;
+import nz.ac.auckland.concert.common.util.TheatreLayout;
+import nz.ac.auckland.concert.service.domain.jpa.SeatNumberConverter;
+import nz.ac.auckland.concert.service.domain.types.*;
 
 import javax.persistence.EntityManager;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.IntStream;
 
 /**
  * JAX-RS Application subclass for the Concert Web service.
@@ -47,9 +52,24 @@ public class ConcertApplication extends Application {
             entityManager.getTransaction().begin();
 
             removeTuplesFromEntity(Seat.class);
-            removeTuplesFromEntity(CreditCard.class);
             removeTuplesFromEntity(Reservation.class);
+            removeTuplesFromEntity(CreditCard.class);
             removeTuplesFromEntity(User.class);
+
+            // Persist all seats for all concert/dates so they can be queried and locked
+            List<Concert> concerts = entityManager.createQuery("SELECT c FROM Concert c", Concert.class).getResultList();
+            for (Concert concert : concerts){
+                for (LocalDateTime concertDate : concert.getDates()){
+                    for (PriceBand seatType : PriceBand.values()){
+                        for (SeatRow seatRow : TheatreLayout.getRowsForPriceBand(seatType)){
+                            IntStream.rangeClosed(1, TheatreLayout.getNumberOfSeatsForRow(seatRow)).forEach(seatNumber -> {
+                                Seat seat = new Seat(seatRow, new SeatNumber(seatNumber), seatType, concertDate);
+                                    entityManager.persist(seat);
+                            });
+                        }
+                    }
+                }
+            }
 
             entityManager.flush();
             entityManager.clear();

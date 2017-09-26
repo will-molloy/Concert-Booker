@@ -1,10 +1,12 @@
 package nz.ac.auckland.concert.service.domain.types;
 
+import nz.ac.auckland.concert.common.types.PriceBand;
 import nz.ac.auckland.concert.common.types.SeatNumber;
 import nz.ac.auckland.concert.common.types.SeatRow;
 import nz.ac.auckland.concert.service.domain.jpa.SeatNumberConverter;
 
 import javax.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
 public class Seat {
@@ -26,14 +28,19 @@ public class Seat {
     @Column(nullable = false)
     private SeatNumber number;
 
+    private PriceBand seatType;
+    private LocalDateTime concertDate;
+
     // ensure seats are bound to a reservation and delete reservations on removal
     // reservation has concert and date therefore all reserved seats for all dates/concerts are stored in the database
     @ManyToOne(cascade = CascadeType.ALL)
     private Reservation reservation;
 
-    public Seat(SeatRow row, SeatNumber number) {
+    public Seat(SeatRow row, SeatNumber number, PriceBand seatType, LocalDateTime concertDate) {
         this.row = row;
         this.number = number;
+        this.seatType = seatType;
+        this.concertDate = concertDate;
     }
 
     protected Seat() {
@@ -63,12 +70,18 @@ public class Seat {
         this.reservation = reservation;
     }
 
+    public LocalDateTime getConcertDate() {
+        return concertDate;
+    }
+
+    public void setConcertDate(LocalDateTime concertDate) {
+        this.concertDate = concertDate;
+    }
+
     /**
-     * Excludes Reservation here so seats without reservations can be compared to those with reservations.
+     * Excludes Reservation so seats without reservations can be compared to those with reservations.
      * Reservations equals() and hashCode() includes seats so this would create a cycle.
-     *
-     * Excludes ID so seats not persisted can be compared to persisted seats.
-     */
+     **/
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -76,14 +89,18 @@ public class Seat {
 
         Seat seat = (Seat) o;
 
+        if (id != seat.id) return false;
         if (row != seat.row) return false;
-        return number != null ? number.equals(seat.number) : seat.number == null;
+        if (number != null ? !number.equals(seat.number) : seat.number != null) return false;
+        return concertDate != null ? concertDate.equals(seat.concertDate) : seat.concertDate == null;
     }
 
     @Override
     public int hashCode() {
-        int result = row != null ? row.hashCode() : 0;
+        int result = (int) (id ^ (id >>> 32));
+        result = 31 * result + (row != null ? row.hashCode() : 0);
         result = 31 * result + (number != null ? number.hashCode() : 0);
+        result = 31 * result + (concertDate != null ? concertDate.hashCode() : 0);
         return result;
     }
 }

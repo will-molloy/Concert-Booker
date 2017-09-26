@@ -24,4 +24,6 @@ public class Messages {
     public static final String EXPIRED_RESERVATION = "Unable to confirm reservation - reservation has expired";
 
     public static final String NO_IMAGE_FOR_PERFORMER = "Unable to download image - no image associated with requested performer";
+
+    public static final String RESOURCE_MODIFICATION_ERROR = "Resource selected for modification is locked.";
 }

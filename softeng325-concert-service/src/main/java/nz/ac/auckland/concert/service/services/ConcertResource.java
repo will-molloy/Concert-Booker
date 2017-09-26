@@ -3,9 +3,6 @@ package nz.ac.auckland.concert.service.services;
 import nz.ac.auckland.concert.common.dto.*;
 import nz.ac.auckland.concert.common.message.Messages;
 import nz.ac.auckland.concert.common.types.PriceBand;
-import nz.ac.auckland.concert.common.types.SeatNumber;
-import nz.ac.auckland.concert.common.types.SeatRow;
-import nz.ac.auckland.concert.common.util.TheatreLayout;
 import nz.ac.auckland.concert.service.domain.types.*;
 import nz.ac.auckland.concert.service.services.mappers.*;
 import nz.ac.auckland.concert.service.services.util.DataVerifier;
@@ -15,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import javax.persistence.EntityManager;
 import javax.persistence.LockModeType;
 import javax.persistence.NoResultException;
+import javax.persistence.OptimisticLockException;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Cookie;
 import javax.ws.rs.core.GenericEntity;
@@ -22,12 +20,14 @@ import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static nz.ac.auckland.concert.common.config.CookieConfig.CLIENT_COOKIE;
 import static nz.ac.auckland.concert.common.config.URIConfig.*;
+import static nz.ac.auckland.concert.common.message.Messages.RESOURCE_MODIFICATION_ERROR;
+import static nz.ac.auckland.concert.service.services.ConcertApplication.RESERVATION_EXPIRY_TIME_IN_SECONDS;
 
 /**
  * JAX-RS Resource class for the Concert Web service.
@@ -206,85 +206,89 @@ public class ConcertResource {
                     .entity(Messages.RESERVATION_REQUEST_WITH_MISSING_FIELDS)
                     .build());
         }
+        List<Seat> requestedSeats;
+        Reservation newReservation = null;
+        try {
+            beginTransaction();
 
-        // Check request included an authentication token that's valid and retrieve the logged in user
-        User user = checkAuthenticationTokenAndGetUser(clientId);
+            // Check request included an authentication token that's valid and retrieve the logged in user
+            User user = checkAuthenticationTokenAndGetUser(clientId);
 
-        Timestamp date = Timestamp.valueOf(reservationRequestDTO.getDate());
-        long concertId = reservationRequestDTO.getConcertId();
-        List<Concert> concerts = entityManager.createQuery("SELECT c " +
-                        "FROM Concert c JOIN c.dates d " +
-                        "WHERE c.id = \'" + concertId + "\' AND " +
-                        "d = \'" + date + "\'"
-                , Concert.class).getResultList();
+            Timestamp date = Timestamp.valueOf(reservationRequestDTO.getDate());
+            long concertId = reservationRequestDTO.getConcertId();
+            List<Concert> concerts = entityManager.createQuery("SELECT c " +
+                            "FROM Concert c JOIN c.dates d " +
+                            "WHERE c.id = \'" + concertId + "\' AND " +
+                            "d = \'" + date + "\'"
+                    , Concert.class)
+                    .getResultList();
 
-        if (concerts.isEmpty()) {
-            throw new BadRequestException(Response
-                    .status(Response.Status.BAD_REQUEST)
-                    .entity(Messages.CONCERT_NOT_SCHEDULED_ON_RESERVATION_DATE)
+            if (concerts.isEmpty()) {
+                throw new BadRequestException(Response
+                        .status(Response.Status.BAD_REQUEST)
+                        .entity(Messages.CONCERT_NOT_SCHEDULED_ON_RESERVATION_DATE)
+                        .build());
+            }
+            Concert concert = concerts.get(0);
+            PriceBand seatType = reservationRequestDTO.getSeatType();
+            LocalDateTime dateTime = reservationRequestDTO.getDate();
+            int numRequiredSeats = reservationRequestDTO.getNumberOfSeats();
+
+            // Select the required number of seats for the given concert date and price band, that aren't reserved
+            // This set of seats will be locked since they will be updated by a link to the reservation
+            removeExpiredReservations();
+            requestedSeats = entityManager.createQuery(
+                    "SELECT s " +
+                            "FROM Seat s " +
+                            "WHERE s.concertDate = :date " +
+                            "AND s.seatType = :seatType " +
+                            "AND s.reservation IS NULL"
+                    , Seat.class)
+                    .setLockMode(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
+                    .setMaxResults(numRequiredSeats)
+                    .setParameter("date", dateTime)
+                    .setParameter("seatType", seatType)
+                    .getResultList();
+            if (requestedSeats.size() != numRequiredSeats) {
+                throwInsufficientSeatsException();
+            }
+
+            // Persist reservation for the user
+            long reservationExpiryTime = System.currentTimeMillis() + (RESERVATION_EXPIRY_TIME_IN_SECONDS * 1000);
+            newReservation = new Reservation(concert, dateTime, seatType, new HashSet<>(requestedSeats), user, reservationExpiryTime);
+            entityManager.persist(newReservation); // links requestedSeats to reservation
+            logger.info("Persisted new reservation: " + newReservation.toString());
+
+        } catch (NoResultException e) {
+            throwInsufficientSeatsException();
+        } catch (OptimisticLockException e){
+            throw new WebApplicationException(Response.
+                    status(Response.Status.PRECONDITION_FAILED)
+                    .entity(RESOURCE_MODIFICATION_ERROR)
                     .build());
+        } finally {
+            commitTransaction();
         }
-        Concert concert = concerts.get(0);
-
-        // Check there are seats available for the concert
-        // Total set of seats for the given seat type:
-        PriceBand seatType = reservationRequestDTO.getSeatType();
-        Set<SeatRow> rowsForSeatType = TheatreLayout.getRowsForPriceBand(seatType);
-        Set<Seat> totalSeatsInGivenSeatType = new HashSet<>();
-        rowsForSeatType.forEach(row ->
-                IntStream.rangeClosed(1, TheatreLayout.getNumberOfSeatsForRow(row)).forEach(seatNumber ->
-                        totalSeatsInGivenSeatType.add(new Seat(row, new SeatNumber(seatNumber)))
-                ));
-
-        // Set of seats that are reserved or booked for the given concert,date and seat type:
-        removeExpiredReservations();
-        List<Reservation> reservations = entityManager.createQuery("SELECT r " +
-                        "FROM Reservation r " +
-                        "WHERE r.concert = \'" + concertId + "\' " +
-                        "AND r.date = \'" + date + "\'" +
-                        "AND r.seatType = \'" + seatType + "\'"
-                , Reservation.class).
-                getResultList();
-
-        Set<Seat> reservedSeats = new HashSet<>();
-        reservations.forEach(reservation -> reservedSeats.addAll(reservation.getSeats()));
-
-        // Set of seats that are available:
-        Set<Seat> availableSeats = new HashSet<>(totalSeatsInGivenSeatType);
-        availableSeats.removeAll(reservedSeats);
-
-        // Ensure the number of available seats is sufficient.
-        int numRequiredSeats = reservationRequestDTO.getNumberOfSeats();
-        if (numRequiredSeats > availableSeats.size()) {
-            throw new BadRequestException(Response
-                    .status(Response.Status.BAD_REQUEST)
-                    .entity(Messages.INSUFFICIENT_SEATS_AVAILABLE_FOR_RESERVATION)
-                    .build());
-        }
-
-        // Select seats from the set of available seats
-        Set<Seat> requestedSeats = new HashSet<>();
-        Iterator<Seat> iterator = availableSeats.iterator();
-        while (numRequiredSeats-- > 0) {
-            requestedSeats.add(iterator.next());
-        }
-        beginTransaction(); /* BEGIN makeReservation transaction, locking Concert object */
-        requestedSeats.forEach(entityManager::persist);
-        requestedSeats.forEach(seat -> entityManager.lock(seat, LockModeType.OPTIMISTIC_FORCE_INCREMENT));
-
-        // Persist reservation for the user, checking the lock on the seats
-        long reservationExpiryTime = System.currentTimeMillis() + (5 * 1000);
-
-        Reservation newReservation = new Reservation(concert, reservationRequestDTO.getDate(), seatType, requestedSeats, user, reservationExpiryTime);
-        entityManager.persist(newReservation);
-
-        commitTransaction(); /* COMMIT makeReservation transaction, releasing Concert object */
-        logger.info("Persisted new reservation: " + newReservation.toString());
 
         return Response.created(URI.create(USERS_URI + RESERVATION_URI + "/" + newReservation.toString())) // 201 Created status
                 .entity(ReservationMapper.toReservationDTO(newReservation))
                 .cookie(makeCookie(clientId))
                 .build();
+    }
+
+    private void removeExpiredReservations() {
+        List<Reservation> expiredReservations = entityManager.createQuery("SELECT r FROM Reservation r " +
+                "WHERE r.expiryTime < " + System.currentTimeMillis(), Reservation.class).getResultList();
+        int size = expiredReservations.size();
+        expiredReservations.forEach(entityManager::remove);
+        logger.info("Removed: " + size + " expired reservation(s).");
+    }
+
+    private void throwInsufficientSeatsException() throws BadRequestException{
+        throw new BadRequestException(Response
+                .status(Response.Status.BAD_REQUEST)
+                .entity(Messages.INSUFFICIENT_SEATS_AVAILABLE_FOR_RESERVATION)
+                .build());
     }
 
     /**
@@ -382,14 +386,6 @@ public class ConcertResource {
         return Response.noContent() // 204 No Content status
                 .cookie(makeCookie(clientId))
                 .build();
-    }
-
-    private void removeExpiredReservations() {
-        List<Reservation> expiredReservations = entityManager.createQuery("SELECT r FROM Reservation r " +
-                "WHERE r.expiryTime < " + System.currentTimeMillis(), Reservation.class).getResultList();
-        int size = expiredReservations.size();
-        expiredReservations.forEach(entityManager::remove);
-        logger.info("Removed: " + size + " expired reservation(s).");
     }
 
     @Path(USERS_URI + RESERVATION_URI)
