@@ -60,6 +60,11 @@ public class Seat {
         this.reservation = reservation;
     }
 
+    /**
+     * Excludes Reservation here so seats without reservations can be compared to those with reservations.
+     * Reservations equals() and hashCode() includes seats so this would create a cycle.
+     * Excludes ID so seats not persisted can be compared to persisted seats.
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

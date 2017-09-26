@@ -127,7 +127,9 @@ public class Reservation {
         if (confirmed != that.confirmed) return false;
         if (seats != null ? !seats.equals(that.seats) : that.seats != null) return false;
         if (seatType != that.seatType) return false;
-        return date != null ? date.equals(that.date) : that.date == null;
+        if (concert != null ? !concert.equals(that.concert) : that.concert != null) return false;
+        if (date != null ? !date.equals(that.date) : that.date != null) return false;
+        return user != null ? user.equals(that.user) : that.user == null;
     }
 
     @Override
@@ -135,7 +137,9 @@ public class Reservation {
         int result = (int) (id ^ (id >>> 32));
         result = 31 * result + (seats != null ? seats.hashCode() : 0);
         result = 31 * result + (seatType != null ? seatType.hashCode() : 0);
+        result = 31 * result + (concert != null ? concert.hashCode() : 0);
         result = 31 * result + (date != null ? date.hashCode() : 0);
+        result = 31 * result + (user != null ? user.hashCode() : 0);
         result = 31 * result + (int) (expiryTime ^ (expiryTime >>> 32));
         result = 31 * result + (confirmed ? 1 : 0);
         return result;

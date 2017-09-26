@@ -221,6 +221,11 @@ public class ConcertResource {
                     .build());
         }
 
+        if (twice){
+            logger.debug("second reserve call");
+        }
+        twice = !twice;
+
         // Check there are seats available for the concert
         // Total set of seats for the given seat type:
         PriceBand seatType = reservationRequestDTO.getSeatType();
@@ -280,6 +285,8 @@ public class ConcertResource {
                 .cookie(makeCookie(clientId))
                 .build();
     }
+
+    static boolean twice = false;
 
     /**
      * Ensures that an authentication token is valid: i.e. it was provided and maps to a single user
