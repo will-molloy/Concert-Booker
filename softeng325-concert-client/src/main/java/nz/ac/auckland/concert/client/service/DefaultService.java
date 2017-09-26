@@ -366,12 +366,14 @@ public class DefaultService implements ConcertService {
                 }
 
                 @Override
-                public void failed(Throwable throwable) {}
+                public void failed(Throwable throwable) {
+
+                }
             });
         } catch (Exception e) {
             throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
         } finally {
-         //   processCookieThenCheckResponseStatusAndCloseClientConnection();
+           // processCookieThenCheckResponseStatusAndCloseClientConnection();
         }
     }
 
@@ -381,11 +383,12 @@ public class DefaultService implements ConcertService {
             createNewClientConnection();
             Builder builder = client.target(WEB_SERVICE_URI + NEWS_ITEM_URI)
                     .request();
+            addCookieToInvocation(builder);
             response = builder.delete();
         } catch (Exception e) {
             throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
         } finally {
-         //   processCookieThenCheckResponseStatusAndCloseClientConnection();
+            processCookieThenCheckResponseStatusAndCloseClientConnection();
         }
     }
 

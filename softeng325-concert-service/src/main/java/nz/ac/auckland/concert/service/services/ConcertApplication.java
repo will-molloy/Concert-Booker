@@ -41,7 +41,7 @@ public class ConcertApplication extends Application {
         initialiseDataBase(); // clear previously existing data from database
 
         _singletons.add(PersistenceManager.instance()); // executes db-init.sql ONCE
-        _singletons.add(ConcertSubscriptionResource.instance()); // Singleton with .instance() corrupts database.. ?
+        _singletons.add(ConcertSubscriptionResource.instance());
         _classes.add(ConcertResource.class); // resource per request
     }
 

@@ -10,8 +10,13 @@ import javax.ws.rs.*;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import static nz.ac.auckland.concert.common.config.URIConfig.NEWS_ITEM_URI;
 
@@ -28,6 +33,9 @@ public class ConcertSubscriptionResource {
 
     private static ConcertSubscriptionResource _instance = null;
 
+    private Executor executor = new ThreadPoolExecutor(5, 5, 0, TimeUnit.SECONDS,
+            new ArrayBlockingQueue<>(10));
+
     private ConcertSubscriptionResource(){}
     public static ConcertSubscriptionResource instance() {
         if (_instance == null) {
@@ -38,14 +46,16 @@ public class ConcertSubscriptionResource {
 
     @GET
     public void subscribe(final @Suspended AsyncResponse response) {
-        logger.info("New subscriber.");
-        responses.add(response);
+        executor.execute(() -> {
+            logger.info("New subscriber.");
+            responses.add(response);
+        });
     }
 
     @DELETE
-    public void cancel(final @Suspended AsyncResponse response) {
+    public void cancel(@Suspended AsyncResponse response) {
         logger.info("Subscription cancelled.");
-        responses.remove(response);
+        response.cancel();
     }
 
     @Consumes(MediaType.TEXT_PLAIN)

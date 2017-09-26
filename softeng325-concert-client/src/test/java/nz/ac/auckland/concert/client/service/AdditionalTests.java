@@ -113,22 +113,22 @@ public class AdditionalTests {
         MockItemListener listener = new MockItemListener() {
             @Override
             public void newsItemReceived(NewsItemDTO newsItem) {
-                assertEquals(newsItem.getContent(), "hi");
+                assertEquals(newsItem.getContent(),"hi");
                 incrementExecution();
             }
         };
         _service.subscribeForNewsItems(listener);
         Thread.sleep(2000);
-        Invocation.Builder b = _client.target(WEB_SERVICE_URI + NEWS_ITEM_URI).request();
-        Response r = b.post(Entity.entity("hi", MediaType.TEXT_PLAIN));
+        Invocation.Builder b = _client.target(WEB_SERVICE_URI+NEWS_ITEM_URI).request();
+        Response r = b.post(Entity.entity("hi",MediaType.TEXT_PLAIN));
         Thread.sleep(2000);
-        Invocation.Builder b2 = _client.target(WEB_SERVICE_URI + NEWS_ITEM_URI).request();
-        Response r2 = b2.post(Entity.entity("hi", MediaType.TEXT_PLAIN));
+        Invocation.Builder b2 = _client.target(WEB_SERVICE_URI+NEWS_ITEM_URI).request();
+        Response r2 = b2.post(Entity.entity("hi",MediaType.TEXT_PLAIN));
         Thread.sleep(2000);
         r.close();
         r2.close();
         _service.cancelSubscription();
-        assertEquals(2, listener.getExecutedTimes());
+        assertEquals(2,listener.getExecutedTimes());
     }
 
     @Test
@@ -136,7 +136,7 @@ public class AdditionalTests {
         MockItemListener listener = new MockItemListener() {
             @Override
             public void newsItemReceived(NewsItemDTO newsItem) {
-                assertEquals(newsItem.getContent(), "hi");
+                assertEquals(newsItem.getContent(),"hi");
                 incrementExecution();
             }
         };
@@ -144,22 +144,23 @@ public class AdditionalTests {
         _service.subscribeForNewsItems(listener);
         _service.cancelSubscription();
         Thread.sleep(200);
-        Invocation.Builder b = _client.target(WEB_SERVICE_URI + NEWS_ITEM_URI).request();
-        Response r = b.post(Entity.entity("hi", MediaType.TEXT_PLAIN));
+        Invocation.Builder b = _client.target(WEB_SERVICE_URI+NEWS_ITEM_URI).request();
+        Response r = b.post(Entity.entity("hi",MediaType.TEXT_PLAIN));
         Thread.sleep(200);
         //Blackout period
-        Invocation.Builder b2 = _client.target(WEB_SERVICE_URI + NEWS_ITEM_URI).request();
-        Response r2 = b2.post(Entity.entity("hi", MediaType.TEXT_PLAIN));
+        Invocation.Builder b2 = _client.target(WEB_SERVICE_URI+NEWS_ITEM_URI).request();
+        Response r2 = b2.post(Entity.entity("hi",MediaType.TEXT_PLAIN));
         //Resubscribe and get back messages missed since last subscribe
         _service.subscribeForNewsItems(listener);
         _service.cancelSubscription();
         Thread.sleep(200);
-        Response r3 = b2.post(Entity.entity("hi", MediaType.TEXT_PLAIN));
+        Invocation.Builder b3 = _client.target(WEB_SERVICE_URI+NEWS_ITEM_URI).request();
+        Response r3 = b2.post(Entity.entity("hi",MediaType.TEXT_PLAIN));
         r.close();
         r2.close();
         r3.close();
         Thread.sleep(300);
-        assertEquals(3, listener.getExecutedTimes());
+        assertEquals(3,listener.getExecutedTimes());
     }
 
     abstract class MockItemListener implements ConcertService.NewsItemListener {

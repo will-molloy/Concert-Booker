@@ -59,7 +59,7 @@ public class Reservation {
         seats.forEach(seat -> seat.setReservation(this));
     }
 
-    public void confirmReservation() {
+    public void confirm() {
         confirmed = true;
         expiryTime = Long.MAX_VALUE;
     }

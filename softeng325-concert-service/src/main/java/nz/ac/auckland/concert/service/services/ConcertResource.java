@@ -14,8 +14,6 @@ import javax.persistence.LockModeType;
 import javax.persistence.NoResultException;
 import javax.persistence.OptimisticLockException;
 import javax.ws.rs.*;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.*;
 import java.net.URI;
 import java.time.LocalDateTime;
@@ -376,7 +374,7 @@ public class ConcertResource {
             }
 
             // Confirm the reservation
-            reservation.confirmReservation();
+            reservation.confirm();
             entityManager.merge(reservation);
 
         } catch (NoResultException e) {
