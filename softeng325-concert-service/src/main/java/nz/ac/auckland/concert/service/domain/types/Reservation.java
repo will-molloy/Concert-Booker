@@ -18,22 +18,22 @@ public class Reservation {
     @Column(nullable = false, unique = true)
     private long id;
 
-    // remove and unlock seats on removal
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "reservation")
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "reservation") // remove reservation on removal
+    @Column(nullable = false)
     private Set<Seat> seats;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PriceBand seatType;
 
-    @ManyToOne(cascade = CascadeType.PERSIST) // Don't delete the concert on removal
+    @ManyToOne(cascade = CascadeType.PERSIST) // Don't delete concert on removal
     @JoinColumn(nullable = false)
     private Concert concert;
 
     @Column(nullable = false)
     private LocalDateTime date;
 
-    @ManyToOne(cascade = CascadeType.PERSIST) // Don't delete the user on removal
+    @ManyToOne(cascade = CascadeType.PERSIST) // Don't delete user on removal
     @JoinColumn(nullable = false)
     private User user;
 
@@ -57,6 +57,11 @@ public class Reservation {
         concert.addReservation(this);
         user.addReservation(this);
         seats.forEach(seat -> seat.setReservation(this));
+    }
+
+    public void confirmReservation() {
+        confirmed = true;
+        expiryTime = Long.MAX_VALUE;
     }
 
     public Set<Seat> getSeats() {
@@ -103,20 +108,12 @@ public class Reservation {
         return confirmed;
     }
 
-    public void setConfirmed(boolean confirmed) {
-        this.confirmed = confirmed;
-    }
-
     public long getId() {
         return id;
     }
 
     public long getExpiryDate() {
         return expiryTime;
-    }
-
-    public void setExpiryDate(long expiryDate) {
-        this.expiryTime = expiryDate;
     }
 
     @Override

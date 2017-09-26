@@ -19,7 +19,6 @@ import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import java.net.URI;
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -59,7 +58,7 @@ public class ConcertResource {
     }
 
     /**
-     * Ends EntityManager transaction and close.
+     * Ends EntityManager transaction and closes. ConcertApplication class will re initialise the entity manager.
      * Call after beginTransaction().
      */
     private void commitTransaction() {
@@ -210,17 +209,19 @@ public class ConcertResource {
         Reservation newReservation = null;
         try {
             beginTransaction();
-
-            // Check request included an authentication token that's valid and retrieve the logged in user
             User user = checkAuthenticationTokenAndGetUser(clientId);
+            PriceBand seatType = reservationRequestDTO.getSeatType();
+            LocalDateTime dateTime = reservationRequestDTO.getDate();
+            int numRequiredSeats = reservationRequestDTO.getNumberOfSeats();
 
-            Timestamp date = Timestamp.valueOf(reservationRequestDTO.getDate());
             long concertId = reservationRequestDTO.getConcertId();
             List<Concert> concerts = entityManager.createQuery("SELECT c " +
                             "FROM Concert c JOIN c.dates d " +
-                            "WHERE c.id = \'" + concertId + "\' AND " +
-                            "d = \'" + date + "\'"
+                            "WHERE c.id = :concertId "
+                            +"AND d = :date"
                     , Concert.class)
+                    .setParameter("concertId", concertId)
+                    .setParameter("date", dateTime)
                     .getResultList();
 
             if (concerts.isEmpty()) {
@@ -230,19 +231,16 @@ public class ConcertResource {
                         .build());
             }
             Concert concert = concerts.get(0);
-            PriceBand seatType = reservationRequestDTO.getSeatType();
-            LocalDateTime dateTime = reservationRequestDTO.getDate();
-            int numRequiredSeats = reservationRequestDTO.getNumberOfSeats();
 
             // Select the required number of seats for the given concert date and price band, that aren't reserved
-            // This set of seats will be locked since they will be updated by a link to the reservation
+            // This set of seats will be locked since they are about to be updated.
             removeExpiredReservations();
             requestedSeats = entityManager.createQuery(
                     "SELECT s " +
                             "FROM Seat s " +
-                            "WHERE s.concertDate = :date " +
-                            "AND s.seatType = :seatType " +
-                            "AND s.reservation IS NULL"
+                            "WHERE s.concertDate = :date "
+                            +"AND s.seatType = :seatType "
+                            +"AND s.reservation IS NULL"
                     , Seat.class)
                     .setLockMode(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
                     .setMaxResults(numRequiredSeats)
@@ -256,7 +254,7 @@ public class ConcertResource {
             // Persist reservation for the user
             long reservationExpiryTime = System.currentTimeMillis() + (RESERVATION_EXPIRY_TIME_IN_SECONDS * 1000);
             newReservation = new Reservation(concert, dateTime, seatType, new HashSet<>(requestedSeats), user, reservationExpiryTime);
-            entityManager.persist(newReservation); // links requestedSeats to reservation
+            entityManager.persist(newReservation); // link requestedSeats to reservation
             logger.info("Persisted new reservation: " + newReservation.toString());
 
         } catch (NoResultException e) {
@@ -277,8 +275,12 @@ public class ConcertResource {
     }
 
     private void removeExpiredReservations() {
-        List<Reservation> expiredReservations = entityManager.createQuery("SELECT r FROM Reservation r " +
-                "WHERE r.expiryTime < " + System.currentTimeMillis(), Reservation.class).getResultList();
+        List<Reservation> expiredReservations = entityManager.createQuery("SELECT r " +
+                "FROM Reservation r " +
+                "WHERE r.expiryTime < :currentTime"
+                , Reservation.class)
+                .setParameter("currentTime", System.currentTimeMillis())
+                .getResultList();
         int size = expiredReservations.size();
         expiredReservations.forEach(entityManager::remove);
         logger.info("Removed: " + size + " expired reservation(s).");
@@ -353,12 +355,16 @@ public class ConcertResource {
         User user = checkAuthenticationTokenAndGetUser(clientId);
         logger.info("Confirming reservation for user :" + user.getUsername());
         try {
-            // Lock the reservation before confirming
+            // Lock the reservation before confirming since the row is to be updated
             Reservation reservation = entityManager.createQuery(
                     "SELECT r FROM Reservation r " +
-                            "WHERE r.user = \'" + user.getUsername() + "\' " +
-                            "AND r.id = " + reservationDTO.getId(),
-                    Reservation.class).setLockMode(LockModeType.OPTIMISTIC_FORCE_INCREMENT).getSingleResult();
+                            "WHERE r.user = :user " +
+                            "AND r.id = :reservationId"
+                    ,Reservation.class)
+                    .setParameter("user", user)
+                    .setParameter("reservationId", reservationDTO.getId())
+                    .setLockMode(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
+                    .getSingleResult();
 
             // Check user has a registered credit card
             CreditCard creditCard = user.getCreditCard();
@@ -370,8 +376,7 @@ public class ConcertResource {
             }
 
             // Confirm the reservation
-            reservation.setConfirmed(true);
-            reservation.setExpiryDate(Long.MAX_VALUE);
+            reservation.confirmReservation();
             entityManager.merge(reservation);
 
         } catch (NoResultException e) {
@@ -398,10 +403,14 @@ public class ConcertResource {
 
         logger.info("Retrieving bookings for user :" + user.getUsername());
 
-        List<Reservation> reservations = entityManager.createQuery("SELECT r " +
+        List<Reservation> reservations = entityManager.createQuery(
+                "SELECT r " +
                 "FROM Reservation r " +
-                "WHERE r.user = \'" + user.getUsername() + "\' " +
-                "AND r.confirmed = " + true, Reservation.class).getResultList();
+                "WHERE r.user = :user " +
+                "AND r.confirmed = true"
+                , Reservation.class)
+                .setParameter("user", user)
+                .getResultList();
 
         Set<BookingDTO> bookingsDTOs = new HashSet<>();
         bookingsDTOs.addAll(reservations.stream().map(ReservationMapper::toBookingDTO).collect(Collectors.toSet()));
