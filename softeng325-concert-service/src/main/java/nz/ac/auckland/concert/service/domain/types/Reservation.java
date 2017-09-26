@@ -9,6 +9,10 @@ import java.util.Set;
 @Entity
 public class Reservation {
 
+    @Version
+    @Column(nullable = false, name = "opt_lock")
+    private long version = 0L;
+
     @Id
     @GeneratedValue
     @Column(nullable = false, unique = true)

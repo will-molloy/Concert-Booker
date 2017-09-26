@@ -64,6 +64,7 @@ public class ConcertResource {
      */
     private void commitTransaction() {
         entityManager.getTransaction().commit();
+        entityManager.close();
     }
 
     @Path(CONCERTS_URI)
@@ -72,11 +73,13 @@ public class ConcertResource {
         logger.info("Retrieving all concerts.");
 
         beginTransaction();
+
         List<Concert> concerts = entityManager.createQuery("SELECT c FROM Concert c", Concert.class).getResultList();
-        commitTransaction();
 
         Set<ConcertDTO> concertDTOS = new HashSet<>();
         concertDTOS.addAll(concerts.stream().map(ConcertMapper::toDTO).collect(Collectors.toSet()));
+
+        commitTransaction();
 
         GenericEntity<Set<ConcertDTO>> entity = new GenericEntity<Set<ConcertDTO>>(concertDTOS) {
         };
@@ -91,11 +94,13 @@ public class ConcertResource {
         logger.info("Retrieving all performers.");
 
         beginTransaction();
+
         List<Performer> performers = entityManager.createQuery("SELECT p FROM Performer p", Performer.class).getResultList();
-        commitTransaction();
 
         Set<PerformerDTO> performerDTOS = new HashSet<>();
         performerDTOS.addAll(performers.stream().map(PerformerMapper::toDTO).collect(Collectors.toSet()));
+
+        commitTransaction();
 
         GenericEntity<Set<PerformerDTO>> entity = new GenericEntity<Set<PerformerDTO>>(performerDTOS) {
         };
@@ -118,6 +123,9 @@ public class ConcertResource {
                     .entity(Messages.CREATE_USER_WITH_MISSING_FIELDS)
                     .build());
         }
+
+        beginTransaction();
+
         // Check if the user already persists
         if (userExists(userDTO)) {
             throw new BadRequestException(Response
@@ -128,8 +136,8 @@ public class ConcertResource {
 
         // Persist the new user
         User user = UserMapper.toDomain(userDTO, uuid);
-        beginTransaction();
         entityManager.persist(user);
+
         commitTransaction();
 
         logger.info("Persisted new user: " + user.getUsername());
@@ -141,9 +149,7 @@ public class ConcertResource {
     }
 
     private boolean userExists(UserDTO userDTO) {
-        beginTransaction();
         List<User> users = entityManager.createQuery("SELECT u FROM User u", User.class).getResultList();
-        commitTransaction();
         return users.stream().anyMatch(user -> user.getUsername().equals(userDTO.getUsername()));
     }
 
@@ -160,6 +166,7 @@ public class ConcertResource {
                     .build());
         }
         // Check the user exists
+        beginTransaction();
         if (!userExists(userDTO)) {
             throw new BadRequestException(Response
                     .status(Response.Status.BAD_REQUEST)
@@ -168,8 +175,8 @@ public class ConcertResource {
         }
 
         // Retrieve the user from the database
-        beginTransaction();
         User user = entityManager.find(User.class, userDTO.getUsername());
+
         commitTransaction();
 
         // Check the password was correct
@@ -203,9 +210,6 @@ public class ConcertResource {
         // Check request included an authentication token that's valid and retrieve the logged in user
         User user = checkAuthenticationTokenAndGetUser(clientId);
 
-        // Check concert is available on that date
-        beginTransaction(); /* BEGIN makeReservation transaction, locking Concert object */
-
         Timestamp date = Timestamp.valueOf(reservationRequestDTO.getDate());
         long concertId = reservationRequestDTO.getConcertId();
         List<Concert> concerts = entityManager.createQuery("SELECT c " +
@@ -221,8 +225,6 @@ public class ConcertResource {
                     .build());
         }
         Concert concert = concerts.get(0);
-        // LOCK Concert object, any other reservation request for this Concert will get an OptimisticLockException
-        entityManager.lock(concert, LockModeType.OPTIMISTIC_FORCE_INCREMENT);
 
         // Check there are seats available for the concert
         // Total set of seats for the given seat type:
@@ -235,6 +237,7 @@ public class ConcertResource {
                 ));
 
         // Set of seats that are reserved or booked for the given concert,date and seat type:
+        removeExpiredReservations();
         List<Reservation> reservations = entityManager.createQuery("SELECT r " +
                         "FROM Reservation r " +
                         "WHERE r.concert = \'" + concertId + "\' " +
@@ -265,6 +268,9 @@ public class ConcertResource {
         while (numRequiredSeats-- > 0) {
             requestedSeats.add(iterator.next());
         }
+        beginTransaction(); /* BEGIN makeReservation transaction, locking Concert object */
+        requestedSeats.forEach(entityManager::persist);
+        requestedSeats.forEach(seat -> entityManager.lock(seat, LockModeType.OPTIMISTIC_FORCE_INCREMENT));
 
         // Persist reservation for the user, checking the lock on the seats
         long reservationExpiryTime = System.currentTimeMillis() + (5 * 1000);
@@ -280,8 +286,6 @@ public class ConcertResource {
                 .cookie(makeCookie(clientId))
                 .build();
     }
-
-    static boolean twice = false;
 
     /**
      * Ensures that an authentication token is valid: i.e. it was provided and maps to a single user
@@ -300,9 +304,7 @@ public class ConcertResource {
         }
 
         String uuid = cookie.getValue();
-        beginTransaction();
         List<User> users = entityManager.createQuery("SELECT u FROM User u WHERE uuid = \'" + uuid + "\'", User.class).getResultList();
-        commitTransaction();
 
         if (users.size() > 1) {
             throw new InternalServerErrorException(Response
@@ -322,14 +324,13 @@ public class ConcertResource {
     @Path(USERS_URI + PAYMENT_URI)
     @POST
     public Response registerCreditCard(CreditCardDTO creditCardDTO, @CookieParam(CLIENT_COOKIE) Cookie clientId) {
-        User user = checkAuthenticationTokenAndGetUser(clientId);
-
-        logger.info("Registering credit card for user :" + user.getUsername());
-
-        CreditCard creditCard = CreditCardMapper.toDomain(creditCardDTO, user);
-
         beginTransaction();
+
+        User user = checkAuthenticationTokenAndGetUser(clientId);
+        logger.info("Registering credit card for user :" + user.getUsername());
+        CreditCard creditCard = CreditCardMapper.toDomain(creditCardDTO, user);
         entityManager.persist(creditCard);
+
         commitTransaction();
 
         return Response.noContent() // 204 No Content status
@@ -340,39 +341,42 @@ public class ConcertResource {
     @Path(USERS_URI + RESERVATION_URI + CONFIRM_URI)
     @POST
     public Response confirmReservation(ReservationDTO reservationDTO, @CookieParam(CLIENT_COOKIE) Cookie clientId) {
-        User user = checkAuthenticationTokenAndGetUser(clientId);
+        beginTransaction();
 
-        logger.info("Confirming reservation for user :" + user.getUsername());
-
-        // Check user has a registered credit card
-        CreditCard creditCard = user.getCreditCard();
-        if (Objects.isNull(creditCard)) {
-            throw new BadRequestException(Response
-                    .status(Response.Status.BAD_REQUEST)
-                    .entity(Messages.CREDIT_CARD_NOT_REGISTERED)
-                    .build());
-        }
-
-        // Check the reservation is still valid and confirm it.
+        // Check the reservation is still valid by removing expired reservations
         removeExpiredReservations();
+
+        User user = checkAuthenticationTokenAndGetUser(clientId);
+        logger.info("Confirming reservation for user :" + user.getUsername());
         try {
-            beginTransaction();
+            // Lock the reservation before confirming
             Reservation reservation = entityManager.createQuery(
                     "SELECT r FROM Reservation r " +
                             "WHERE r.user = \'" + user.getUsername() + "\' " +
                             "AND r.id = " + reservationDTO.getId(),
-                    Reservation.class).getSingleResult();
+                    Reservation.class).setLockMode(LockModeType.OPTIMISTIC_FORCE_INCREMENT).getSingleResult();
 
+            // Check user has a registered credit card
+            CreditCard creditCard = user.getCreditCard();
+            if (Objects.isNull(creditCard)) {
+                throw new BadRequestException(Response
+                        .status(Response.Status.BAD_REQUEST)
+                        .entity(Messages.CREDIT_CARD_NOT_REGISTERED)
+                        .build());
+            }
+
+            // Confirm the reservation
             reservation.setConfirmed(true);
             reservation.setExpiryDate(Long.MAX_VALUE);
             entityManager.merge(reservation);
-            commitTransaction();
 
         } catch (NoResultException e) {
             throw new BadRequestException(Response
                     .status(Response.Status.BAD_REQUEST)
                     .entity(Messages.EXPIRED_RESERVATION)
                     .build());
+        } finally {
+            commitTransaction();
         }
 
         return Response.noContent() // 204 No Content status
@@ -381,32 +385,32 @@ public class ConcertResource {
     }
 
     private void removeExpiredReservations() {
-        beginTransaction();
         List<Reservation> expiredReservations = entityManager.createQuery("SELECT r FROM Reservation r " +
                 "WHERE r.expiryTime < " + System.currentTimeMillis(), Reservation.class).getResultList();
         int size = expiredReservations.size();
         expiredReservations.forEach(entityManager::remove);
-        commitTransaction();
         logger.info("Removed: " + size + " expired reservation(s).");
     }
 
     @Path(USERS_URI + RESERVATION_URI)
     @GET
     public Response getBookings(@CookieParam(CLIENT_COOKIE) Cookie clientId) {
+        beginTransaction();
+
         User user = checkAuthenticationTokenAndGetUser(clientId);
         removeExpiredReservations();
 
         logger.info("Retrieving bookings for user :" + user.getUsername());
 
-        beginTransaction();
         List<Reservation> reservations = entityManager.createQuery("SELECT r " +
                 "FROM Reservation r " +
                 "WHERE r.user = \'" + user.getUsername() + "\' " +
                 "AND r.confirmed = " + true, Reservation.class).getResultList();
-        commitTransaction();
 
         Set<BookingDTO> bookingsDTOs = new HashSet<>();
         bookingsDTOs.addAll(reservations.stream().map(ReservationMapper::toBookingDTO).collect(Collectors.toSet()));
+
+        commitTransaction();
 
         GenericEntity<Set<BookingDTO>> entity = new GenericEntity<Set<BookingDTO>>(bookingsDTOs) {
         };

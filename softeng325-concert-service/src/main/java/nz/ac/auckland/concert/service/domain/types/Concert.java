@@ -16,10 +16,6 @@ public class Concert {
     @Column(nullable = false, unique = true)
     private long id;
 
-    @Version
-    @Column(nullable = false, name = "opt_lock")
-    private long version = 0L;
-
     @Column(nullable = false)
     private String title;
 

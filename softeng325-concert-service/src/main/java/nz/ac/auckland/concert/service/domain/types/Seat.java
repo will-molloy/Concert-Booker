@@ -9,6 +9,10 @@ import javax.persistence.*;
 @Entity
 public class Seat {
 
+    @Version
+    @Column(nullable = false, name = "opt_lock")
+    private long version = 0L;
+
     @Id
     @GeneratedValue
     @Column(nullable = false, unique = true)
@@ -25,7 +29,6 @@ public class Seat {
     // ensure seats are bound to a reservation and delete reservations on removal
     // reservation has concert and date therefore all reserved seats for all dates/concerts are stored in the database
     @ManyToOne(cascade = CascadeType.ALL)
-    @JoinColumn(nullable = false)
     private Reservation reservation;
 
     public Seat(SeatRow row, SeatNumber number) {
@@ -63,6 +66,7 @@ public class Seat {
     /**
      * Excludes Reservation here so seats without reservations can be compared to those with reservations.
      * Reservations equals() and hashCode() includes seats so this would create a cycle.
+     *
      * Excludes ID so seats not persisted can be compared to persisted seats.
      */
     @Override
