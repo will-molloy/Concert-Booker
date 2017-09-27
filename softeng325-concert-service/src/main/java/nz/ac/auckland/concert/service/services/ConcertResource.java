@@ -435,7 +435,7 @@ public class ConcertResource {
      * method returns null as there's no need to return a NewCookie in the HTTP
      * response message.
      */
-    private NewCookie makeCookie(Cookie clientId) {
+    protected static NewCookie makeCookie(Cookie clientId) {
         NewCookie newCookie;
         if (clientId == null) {
             newCookie = new NewCookie(CLIENT_COOKIE, UUID.randomUUID().toString());

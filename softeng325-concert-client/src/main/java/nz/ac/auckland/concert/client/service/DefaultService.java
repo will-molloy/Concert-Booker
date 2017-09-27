@@ -13,7 +13,6 @@ import nz.ac.auckland.concert.common.message.Messages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.CookieParam;
 import javax.ws.rs.client.*;
 import javax.ws.rs.client.Invocation.Builder;
 import javax.ws.rs.core.GenericType;
@@ -44,7 +43,6 @@ public class DefaultService implements ConcertService {
 
     private Client client;
     private Response response;
-    private NewsItemCallBack newsItemCallBack;
 
     /**
      * Resets any error message and status code and creates a new client connection.
@@ -356,21 +354,69 @@ public class DefaultService implements ConcertService {
     public void subscribeForNewsItems(NewsItemListener listener) {
         try {
             createNewClientConnection();
+
+            if (cookieValues.isEmpty()) {
+                // Register to the service
+                Builder builder = client.target(WEB_SERVICE_URI + NEWS_ITEM_URI + "/register").
+                        request();
+                addCookieToInvocation(builder);
+                Response response = builder.get();
+                processCookieFromResponse(response);
+            }
+
+            String cookie = cookieValues.iterator().next();
+            createNewClientConnection();
+
+            // Subscribe to publish events
             final WebTarget target = client.target(WEB_SERVICE_URI + NEWS_ITEM_URI);
-            
-            newsItemCallBack = new NewsItemCallBack(listener, target);
+            String finalCookie = cookie;
             target.request()
+                    .cookie(CLIENT_COOKIE, cookie)
                     .async()
-                    .get(newsItemCallBack);
+                    .get(new InvocationCallback<Response>() {
+                        @Override
+                        public void completed(Response response) {
+
+                            Set<NewsItemDTO> newsItems = response.readEntity(new GenericType<Set<NewsItemDTO>>() {
+                            });
+                            newsItems.forEach(item -> {
+                                logger.info("Received item: " + item.getContent());
+                                listener.newsItemReceived(item);
+                            });
+
+                            processCookieFromResponse(response);
+                            target.request().cookie(CLIENT_COOKIE, finalCookie).async().get(this);
+                        }
+
+                        @Override
+                        public void failed(Throwable throwable) {
+                            throwable.printStackTrace();
+                        }
+                    });
+
         } catch (Exception e) {
             throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
-        }
+        } // Keep client open in order to receive news items asynchronously
     }
+
 
     @Override
     public void cancelSubscription() {
         logger.info("Cancelling subscription.");
-        Response r2 = client.target(WEB_SERVICE_URI + NEWS_ITEM_URI).request().put(Entity.entity("hi", MediaType.TEXT_PLAIN));
+        try {
+            createNewClientConnection();
+            Builder builder = client.target(WEB_SERVICE_URI + NEWS_ITEM_URI)
+                    .request();
+            addCookieToInvocation(builder);
+            Response response = builder
+                    .delete();
+
+            processCookieFromResponse(response);
+        } catch (Exception e) {
+            throw new ServiceException(Messages.SERVICE_COMMUNICATION_ERROR);
+        } finally {
+            client.close();
+        }
     }
 }
 

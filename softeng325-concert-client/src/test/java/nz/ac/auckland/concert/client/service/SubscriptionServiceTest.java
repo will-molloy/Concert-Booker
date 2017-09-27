@@ -26,7 +26,7 @@ import static org.junit.Assert.assertEquals;
  * Additional tests on getImageForPerformer and subscription model.
  * Ignored since they require toggling of debug code in ConcertApplication.
  */
-public class AdditionalTests {
+public class SubscriptionServiceTest {
     private static final int SERVER_PORT = 10000;
     private static final String WEB_SERVICE_CLASS_NAME = ConcertApplication.class.getName();
     private static Logger _logger = LoggerFactory
@@ -91,7 +91,7 @@ public class AdditionalTests {
     }
 
     @Test
-    public void testPublishWithIntervalBetween() throws InterruptedException {
+    public void testPublishWithBlackout() throws InterruptedException {
         MockItemListener listener = new MockItemListener() {
             @Override
             public void newsItemReceived(NewsItemDTO newsItem) {
@@ -99,28 +99,27 @@ public class AdditionalTests {
                 incrementExecution();
             }
         };
-        //Subscribe and get 1 response.???? 0 ????
         _service.subscribeForNewsItems(listener);
-        Thread.sleep(3000);
+        Thread.sleep(2000);
         _service.cancelSubscription();
-        Thread.sleep(3000);
+        Thread.sleep(2000);
         Invocation.Builder b = _client.target(WEB_SERVICE_URI + NEWS_ITEM_URI).request();
         Response r = b.post(Entity.entity("hi", MediaType.TEXT_PLAIN));
-        Thread.sleep(3000);
+        Thread.sleep(2000);
         //Blackout period
         Invocation.Builder b2 = _client.target(WEB_SERVICE_URI + NEWS_ITEM_URI).request();
         Response r2 = b2.post(Entity.entity("hi", MediaType.TEXT_PLAIN));
-        //Resubscribe and get back messages missed since last subscribe
+        //Resubscribe and get back messages missed since last subscribe ( +2 )
         _service.subscribeForNewsItems(listener);
-        Thread.sleep(3000);
+        Thread.sleep(2000);
         _service.cancelSubscription();
-        Thread.sleep(3000);
+        Thread.sleep(2000);
         Response r3 = b2.post(Entity.entity("hi", MediaType.TEXT_PLAIN));
         r.close();
         r2.close();
         r3.close();
-        Thread.sleep(1000);
-        assertEquals(3, listener.getExecutedTimes()); // 2??
+        Thread.sleep(2000);
+        assertEquals(2, listener.getExecutedTimes());
     }
 
     abstract class MockItemListener implements ConcertService.NewsItemListener {

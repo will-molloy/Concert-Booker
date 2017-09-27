@@ -10,8 +10,7 @@ import javax.persistence.EntityManager;
 import javax.ws.rs.*;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import javax.ws.rs.core.*;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -19,12 +18,18 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import static nz.ac.auckland.concert.common.config.CookieConfig.CLIENT_COOKIE;
 import static nz.ac.auckland.concert.common.config.URIConfig.NEWS_ITEM_URI;
+import static nz.ac.auckland.concert.service.services.ConcertResource.makeCookie;
 
 @Consumes({MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN})
 @Produces({MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN})
 @Path("/concert" + NEWS_ITEM_URI)
 public class ConcertSubscriptionResource {
+
+    private Map<String, LocalDateTime> pausedClients = new HashMap<>();
+    private Map<String, AsyncResponse> responses = new HashMap<>();
+    private List<String> registeredClients = new ArrayList<>();
 
     /**
      * Begins EntityManager transaction
@@ -45,8 +50,6 @@ public class ConcertSubscriptionResource {
             .getLogger(ConcertSubscriptionResource.class);
     private EntityManager entityManager = PersistenceManager.instance().createEntityManager();
 
-    private List<AsyncResponse> responses = new ArrayList<>();
-
     private static ConcertSubscriptionResource _instance = null;
 
     private Executor executor = new ThreadPoolExecutor(5, 5, 0, TimeUnit.SECONDS,
@@ -62,54 +65,94 @@ public class ConcertSubscriptionResource {
         return _instance;
     }
 
+    @Path("/register")
     @GET
-    public void subscribe(final @Suspended AsyncResponse response) {
-        logger.info("New subscriber.");
-        responses.add(response);
+    public Response register(@CookieParam(CLIENT_COOKIE) Cookie clientId) {
+        logger.info("Sending registration code");
+        NewCookie newCookie = makeCookie(clientId);
+        registeredClients.add(newCookie.getValue());
 
-        // If this is a returning response fill it in with the items it missed
-        if (pausedResponses.containsKey(response)){
-            beginTransaction();
-            List<NewsItem> oldNewsItems = entityManager.createQuery("SELECT n FROM NewsItem", NewsItem.class).getResultList();
-            LocalDateTime cancelDate = pausedResponses.get(response);
-            for (NewsItem newsItem : oldNewsItems){
-                if (cancelDate.isBefore(newsItem.get_timestamp())){
-                    response.resume(NewsItemMapper.toDTO(newsItem));
-                }
-            }
-            commitTransaction();
-        }
+        return Response.ok().cookie(newCookie).build();
     }
 
+    /**
+     * Links the given async response to the given client.
+     * If this is a returning client broadcasts all messages they missed.
+     */
+    @GET
+    public void subscribe(final @Suspended AsyncResponse newResponse, @CookieParam(CLIENT_COOKIE) Cookie clientId) {
+        String registrationId = null;
+        if (clientId != null) {
+            registrationId = clientId.getValue();
+        }
+        String finalRegistrationId = registrationId;
+        executor.execute(() -> {
+            responses.put(finalRegistrationId, newResponse);
+
+            if (responses.containsKey(finalRegistrationId)) {
+                logger.info("Returning subscriber." + finalRegistrationId);
+
+                if (pausedClients.containsKey(finalRegistrationId)) {
+                    // Notify response with news items it may have missed
+                    LocalDateTime resubscribeTime = LocalDateTime.now();
+                    LocalDateTime cancelTime = pausedClients.get(finalRegistrationId);
+                    pausedClients.remove(finalRegistrationId);
+
+                    beginTransaction();
+                    List<NewsItem> oldNewsItems = entityManager.createQuery("SELECT n FROM NewsItem n", NewsItem.class).getResultList();
+                    commitTransaction();
+                    Set<NewsItemDTO> missedItems = new HashSet<>();
+                    for (NewsItem oldItem : oldNewsItems) {
+                        LocalDateTime itemTime = oldItem.get_timestamp();
+                        if (itemTime.isBefore(resubscribeTime) && itemTime.isAfter(cancelTime)) {
+                            missedItems.add(NewsItemMapper.toDTO(oldItem));
+                        }
+                    }
+                    GenericEntity<Set<NewsItemDTO>> entity = new GenericEntity<Set<NewsItemDTO>>(missedItems) {
+                    };
+                    Response response = Response.ok().entity(entity).build();
+                    newResponse.resume(response);
+                }
+            } else {
+                logger.info("New subscriber.");
+            }
+        });
+    }
+
+    /**
+     * Broadcasts the message to all subscribed clients that aren't paused.
+     */
     @POST
     public void publish(final String message) {
         logger.info("Publishing: " + message);
         executor.execute(() -> {
+            // Store the news item
             beginTransaction();
             final NewsItem newsItem = new NewsItem(LocalDateTime.now(), message);
             entityManager.persist(newsItem);
             commitTransaction();
 
-            NewsItemDTO newsItemDTO = NewsItemMapper.toDTO(newsItem);
-            responses.forEach(asyncResponse -> asyncResponse.resume(newsItemDTO));
-            responses.clear();
+            // Notify registered clients that aren't paused
+            for (String registeredClient : registeredClients) {
+                AsyncResponse asyncResponse = responses.get(registeredClient);
+                if (!pausedClients.containsKey(registeredClient) && asyncResponse != null) {
+                    Set<NewsItemDTO> newsItemSet = new HashSet<>();
+                    newsItemSet.add(NewsItemMapper.toDTO(newsItem));
+                    GenericEntity<Set<NewsItemDTO>> entity = new GenericEntity<Set<NewsItemDTO>>(newsItemSet) {
+                    };
+                    Response response = Response.ok().entity(entity).build();
+                    asyncResponse.resume(response);
+                }
+
+            }
         });
     }
 
-    @PUT
-    public void cancel(final String message) {
-        logger.info("Cancelling subscriber.");
-
-
-
-//        pausedResponses.put(response, LocalDateTime.now());
-//
-//        responses.remove(response);
-//        response.cancel();
+    /**
+     * Pauses the given client
+     */
+    @DELETE
+    public void cancel(@CookieParam(CLIENT_COOKIE) Cookie clientId) {
+        pausedClients.put(clientId.getValue(), LocalDateTime.now());
     }
-
-    private Map<AsyncResponse, LocalDateTime> pausedResponses = new HashMap<>();
-
-
-
 }
